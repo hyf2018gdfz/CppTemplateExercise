@@ -1,8 +1,11 @@
 #include "SegmentTree.hpp"
 
+namespace TestSegmentTree {
 auto e = []() { return 0; };
 auto add = [](int x, int y) { return x + y; };
 auto mapping = [](int x, int y) { return x * y; };
+} // namespace TestSegmentTree
+using namespace TestSegmentTree;
 
 void test_SegmentTree() {
     SegmentTree<int, e, add, mapping> segTree({1, 2, 3, 4, 5});

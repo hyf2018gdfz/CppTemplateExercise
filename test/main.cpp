@@ -30,12 +30,14 @@ void run_test(const string &name, TestFunc func, int &passed, int &failed) {
 void test_SegmentTree();
 void test_SegmentTree_big();
 void test_LinkList();
+void test_FenwickTree();
 
 int main(int argc, char *argv[]) {
     map<string, TestFunc> tests = {
         {"SegmentTree", test_SegmentTree},
         {"bSegmentTree", test_SegmentTree_big},
-        {"LinkList", test_LinkList}
+        {"LinkList", test_LinkList},
+        {"FenwickTree", test_FenwickTree},
         // 新模块加到这里
     };
 

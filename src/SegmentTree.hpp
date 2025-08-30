@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-// op: T\times T -> T，满足结合律，e 是单位元
+// op: T x T -> T，满足结合律，e 是单位元
 // mapping: 二元组 (lazy[o], length_of_the_interval) 对 tree[o] 的贡献
 template <typename T, T (*e)(), T (*op)(T, T), T (*mapping)(T, int)>
 class SegmentTree {
