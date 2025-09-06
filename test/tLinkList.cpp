@@ -1,10 +1,10 @@
 #include "LinkList.hpp"
 
 void test_LinkList() {
-    LinkList<int> list;
+    mystd::LinkList<int> list;
 
     // 初始状态测试
-    CHECK_EQ(0, list.getLen());
+    CHECK_EQ(0, list.size());
     CHECK_EQ(false, list.pop_front());
     CHECK_EQ(false, list.pop_back());
 
@@ -66,7 +66,8 @@ void test_LinkList() {
     // 清空链表测试
     list.pop_back();
     list.pop_back();
-    CHECK_EQ(0, list.getLen());
+    CHECK_EQ(true, list.empty());
+    CHECK_EQ(0, list.size());
     CHECK_EQ(false, list.pop_back());
     CHECK_EQ(false, list.pop_front());
 }

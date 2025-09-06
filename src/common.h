@@ -1,9 +1,10 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include <bits/stdc++.h>
-
-using namespace std;
+#include <iostream>
+#include <sstream>
+#include <utility>
+#include <stdexcept>
 
 const int iinf = 0x3f3f3f3f;
 const long long linf = 2e18;
@@ -20,10 +21,10 @@ struct TestInfo {
 template <typename T, typename U>
 void check_eq_impl(const T &expected, const U &actual, const TestInfo &info) {
     if (expected != actual) {
-        cerr << "[FAIL] " << info.funcName << " (" << info.fileName << ":"
-             << info.lineNumber << "): expected=" << expected
-             << " got=" << actual << "\n";
-        throw runtime_error("Test failed");
+        std::cerr << "[FAIL] " << info.funcName << " (" << info.fileName << ":"
+                  << info.lineNumber << "): expected=" << expected
+                  << " got=" << actual << "\n";
+        throw std::runtime_error("Test failed");
     }
 }
 

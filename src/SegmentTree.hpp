@@ -2,6 +2,9 @@
 #define SEGMENTTREE_HPP
 
 #include "common.h"
+#include <vector>
+
+namespace mystd {
 
 // op: T x T -> T，满足结合律，e 是单位元
 // mapping: 二元组 (lazy[o], length_of_the_interval) 对 tree[o] 的贡献
@@ -9,7 +12,7 @@ template <typename T, T (*e)(), T (*op)(T, T), T (*mapping)(T, int)>
 class SegmentTree {
 private:
     int n;
-    vector<T> tree, lazy;
+    std::vector<T> tree, lazy;
     void push_up(int o) { tree[o] = op(tree[o * 2], tree[o * 2 + 1]); }
     void push_down(int o, int l, int r) {
         if (lazy[o] == e()) return;
@@ -20,7 +23,7 @@ private:
         lazy[o * 2 + 1] = op(lazy[o * 2 + 1], lazy[o]);
         lazy[o] = e();
     }
-    void build(int l, int r, int o, const vector<T> &arr) {
+    void build(int l, int r, int o, const std::vector<T> &arr) {
         if (l == r) {
             tree[o] = arr[l - 1];
             return;
@@ -75,28 +78,33 @@ private:
     }
 
 public:
-    explicit SegmentTree(int n) : SegmentTree(vector<T>(n, e())) {}
-    explicit SegmentTree(const vector<T> &arr) : n(int(arr.size())) {
+    explicit SegmentTree(int n) : SegmentTree(std::vector<T>(n, e())) {}
+    explicit SegmentTree(const std::vector<T> &arr) : n(int(arr.size())) {
         tree.resize(4 * n + 1);
         lazy.resize(4 * n + 1, e());
         build(1, n, 1, arr);
     }
     void point_add(int index, T num) {
-        if (index < 1 || index > n) throw out_of_range("Index out of bounds");
+        if (index < 1 || index > n)
+            throw std::out_of_range("Index out of bounds");
         _point_add(index, num, 1, n, 1);
     }
     T point_query(int index) {
-        if (index < 1 || index > n) throw out_of_range("Index out of bounds");
+        if (index < 1 || index > n)
+            throw std::out_of_range("Index out of bounds");
         return _point_query(index, 1, n, 1);
     }
     void interval_add(int L, int R, T num) {
-        if (L < 1 || R > n || L > R) throw out_of_range("Invalid interval");
+        if (L < 1 || R > n || L > R)
+            throw std::out_of_range("Invalid interval");
         _interval_add(L, R, num, 1, n, 1);
     }
     T interval_query(int L, int R) {
-        if (L < 1 || R > n || L > R) throw out_of_range("Invalid interval");
+        if (L < 1 || R > n || L > R)
+            throw std::out_of_range("Invalid interval");
         return _interval_query(L, R, 1, n, 1);
     }
 };
+} // namespace mystd
 
 #endif // SEGMENTTREE_HPP

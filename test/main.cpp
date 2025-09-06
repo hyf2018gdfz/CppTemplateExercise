@@ -31,6 +31,7 @@ void test_SegmentTree();
 void test_SegmentTree_big();
 void test_LinkList();
 void test_FenwickTree();
+void test_Vector();
 
 int main(int argc, char *argv[]) {
     map<string, TestFunc> tests = {
@@ -38,6 +39,7 @@ int main(int argc, char *argv[]) {
         {"bSegmentTree", test_SegmentTree_big},
         {"LinkList", test_LinkList},
         {"FenwickTree", test_FenwickTree},
+        {"Vector", test_Vector}
         // 新模块加到这里
     };
 

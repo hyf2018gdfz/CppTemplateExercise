@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+namespace mystd {
+
 template <typename T>
 class LinkList {
 private:
@@ -13,7 +15,8 @@ private:
         /// INFO:
         /// 此处也可以写多参数传入的构造，但是考虑易读性，这里仍然写成单参数
         template <typename U>
-        Node(U &&_val) : val(forward<U>(_val)), nxt(nullptr), pre(nullptr) {}
+        Node(U &&_val) :
+            val(std::forward<U>(_val)), nxt(nullptr), pre(nullptr) {}
     };
     Node *head, *tail;
     int len;
@@ -30,17 +33,20 @@ private:
     }
     Node *getNodeAt(int index) {
         if (index < 0 || index >= len) return nullptr;
-        Node *cur = (index < len / 2) ? head : tail;
+        Node *cur;
         if (index < len / 2) {
+            cur = head;
             for (int i = 0; i < index; i++) cur = cur->nxt;
         } else {
+            cur = tail;
             for (int i = len - 1; i > index; i--) cur = cur->pre;
         }
         return cur;
     }
 
 public:
-    int getLen() const { return len; }
+    bool empty() const { return len == 0; }
+    int size() const { return len; }
     LinkList() {
         head = tail = nullptr;
         len = 0;
@@ -55,6 +61,13 @@ public:
             cur = cur->nxt;
         }
     }
+    LinkList(LinkList &&other) noexcept :
+        head(other.head), tail(other.tail), len(other.len) {
+        other.head = nullptr;
+        other.tail = nullptr;
+        other.len = 0;
+    }
+
     LinkList &operator=(const LinkList &other) {
         if (this == &other) return *this;
         clear();
@@ -65,27 +78,21 @@ public:
         }
         return *this;
     }
-    LinkList(LinkList &&other) noexcept :
-        head(other.head), tail(other.tail), len(other.len) {
+    LinkList &operator=(LinkList &&other) noexcept {
+        if (this == &other) return *this;
+        clear();
+        head = other.head;
+        tail = other.tail;
+        len = other.len;
         other.head = nullptr;
         other.tail = nullptr;
         other.len = 0;
-    }
-    LinkList &operator=(LinkList &&other) noexcept {
-        if (this != &other) {
-            clear();
-            head = other.head;
-            tail = other.tail;
-            len = other.len;
-            other.head = nullptr;
-            other.tail = nullptr;
-            other.len = 0;
-        }
         return *this;
     }
+
     template <typename U>
     void push_back(U &&val) {
-        Node *newNode = new Node(forward<U>(val));
+        Node *newNode = new Node(std::forward<U>(val));
         len++;
         if (head == nullptr) {
             head = tail = newNode;
@@ -111,7 +118,7 @@ public:
     }
     template <typename U>
     void push_front(U &&val) {
-        Node *newNode = new Node(forward<U>(val));
+        Node *newNode = new Node(std::forward<U>(val));
         len++;
         if (head == nullptr) {
             head = tail = newNode;
@@ -151,15 +158,15 @@ public:
     bool insert(int index, U &&val) {
         if (index < 0 || index > len) return false;
         if (index == 0) {
-            push_front(forward<U>(val));
+            push_front(std::forward<U>(val));
             return true;
         }
         if (index == len) {
-            push_back(forward<U>(val));
+            push_back(std::forward<U>(val));
             return true;
         }
         auto *cur = getNodeAt(index);
-        Node *newNode = new Node(forward<U>(val));
+        Node *newNode = new Node(std::forward<U>(val));
         newNode->pre = cur->pre;
         newNode->nxt = cur;
         cur->pre->nxt = newNode;
@@ -177,7 +184,7 @@ public:
         }
         return -1;
     }
-    friend std::ostream &operator<<(std::ostream &os, const LinkList<T> &lst) {
+    friend std::ostream &operator<<(std::ostream &os, const LinkList &lst) {
         os << "[";
         auto *cur = lst.head;
         while (cur != nullptr) {
@@ -189,5 +196,6 @@ public:
         return os;
     }
 };
+} // namespace mystd
 
 #endif // LINKLIST_HPP
