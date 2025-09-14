@@ -2,7 +2,6 @@
 #define VECTOR_HPP
 
 #include "common.h"
-#include <algorithm>
 #include <initializer_list>
 #include <type_traits>
 #include <cstring>
@@ -119,6 +118,7 @@ public:
         m_size = 0;
     }
 
+    /// INFO: 出于保持简洁的原因，采用万能引用的写法而非两个重载的写法
     template <typename U>
     void push_back(U &&val) {
         if (m_size == m_capacity) {
@@ -231,9 +231,9 @@ public:
     }
 
     void swap(Vector &ano) noexcept {
-        std::swap(this->m_size, ano.m_size);
-        std::swap(this->m_capacity, ano.m_capacity);
-        std::swap(this->m_data, ano.m_data);
+        mystd::swap(this->m_size, ano.m_size);
+        mystd::swap(this->m_capacity, ano.m_capacity);
+        mystd::swap(this->m_data, ano.m_data);
     }
 
     T &front() {

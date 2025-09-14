@@ -78,4 +78,14 @@ void check_eq_impl(const T &expected, const U &actual, const TestInfo &info) {
     check_eq_impl((expected), (actual),                                        \
                   (TestInfo){__FILE__, __FUNCTION__, __LINE__})
 
+namespace mystd {
+
+template <typename T>
+void swap(T &a, T &b) noexcept {
+    T temp = std::move(a);
+    a = std::move(b);
+    b = std::move(temp);
+}
+} // namespace mystd
+
 #endif // COMMON_H
