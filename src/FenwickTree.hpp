@@ -2,6 +2,7 @@
 #define FENWICKTREE_HPP
 
 #include "common.h"
+
 #include <vector>
 
 namespace mystd {

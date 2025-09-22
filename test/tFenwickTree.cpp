@@ -1,4 +1,5 @@
 #include "FenwickTree.hpp"
+#include "test.h"
 
 namespace TestFenwickTree {
 auto e = []() { return 0; };

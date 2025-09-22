@@ -1,4 +1,6 @@
 #include "Vector.hpp"
+#include "test.h"
+
 #include <stdexcept>
 using namespace mystd;
 

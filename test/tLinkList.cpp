@@ -1,4 +1,5 @@
 #include "LinkList.hpp"
+#include "test.h"
 
 void test_LinkList() {
     mystd::LinkList<int> list;

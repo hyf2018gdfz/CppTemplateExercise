@@ -28,7 +28,6 @@ void run_test(const string &name, TestFunc func, int &passed, int &failed) {
 
 // 各测试模块声明
 void test_SegmentTree();
-void test_SegmentTree_big();
 void test_LinkList();
 void test_FenwickTree();
 void test_Vector();
@@ -37,7 +36,6 @@ void test_BinaryHeap();
 int main(int argc, char *argv[]) {
     map<string, TestFunc> tests = {
         {"SegmentTree", test_SegmentTree},
-        {"bSegmentTree", test_SegmentTree_big},
         {"LinkList", test_LinkList},
         {"FenwickTree", test_FenwickTree},
         {"Vector", test_Vector},

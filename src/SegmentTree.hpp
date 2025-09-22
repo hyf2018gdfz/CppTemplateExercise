@@ -1,108 +1,106 @@
 #ifndef SEGMENTTREE_HPP
 #define SEGMENTTREE_HPP
 
-#include "common.h"
+#include "BitOperation.hpp"
+
 #include <vector>
 
 namespace mystd {
 
-// op: T x T -> T，满足结合律，e 是单位元
-// mapping: 二元组 (lazy[o], length_of_the_interval) 对 tree[o] 的贡献
-template <typename T, T (*e)(), T (*op)(T, T), T (*mapping)(T, int)>
+template <typename T,
+          T (*op)(T, T),
+          T (*e)(),
+          typename F,
+          T (*mapping)(F, T),
+          F (*composition)(F, F),
+          F (*id)()>
 class SegmentTree {
 private:
-    int n;
-    std::vector<T> tree, lazy;
+    int n, size, log;
+    // 为了方便在算法竞赛环境中使用，使用 std::vector 而不是 mystd::Vector
+    std::vector<T> tree;
+    std::vector<F> lazy;
     void push_up(int o) { tree[o] = op(tree[o * 2], tree[o * 2 + 1]); }
-    void push_down(int o, int l, int r) {
-        if (lazy[o] == e()) return;
-        int mid = (l + r) / 2;
-        tree[o * 2] = op(tree[o * 2], mapping(lazy[o], mid - l + 1));
-        tree[o * 2 + 1] = op(tree[o * 2 + 1], mapping(lazy[o], r - mid));
-        lazy[o * 2] = op(lazy[o * 2], lazy[o]);
-        lazy[o * 2 + 1] = op(lazy[o * 2 + 1], lazy[o]);
-        lazy[o] = e();
+    void apply_node(int o, F f) {
+        tree[o] = mapping(f, tree[o]);
+        if (o < size) lazy[o] = composition(f, lazy[o]);
     }
-    void build(int l, int r, int o, const std::vector<T> &arr) {
-        if (l == r) {
-            tree[o] = arr[l - 1];
-            return;
-        }
-        int mid = (l + r) / 2;
-        build(l, mid, o * 2, arr);
-        build(mid + 1, r, o * 2 + 1, arr);
-        push_up(o);
-    }
-    void _point_add(int index, T num, int l, int r, int o) {
-        if (l == r) {
-            tree[o] = op(tree[o], num);
-            return;
-        }
-        int mid = (l + r) / 2;
-        if (index <= mid)
-            _point_add(index, num, l, mid, o * 2);
-        else
-            _point_add(index, num, mid + 1, r, o * 2 + 1);
-        push_up(o);
-    }
-    T _point_query(int index, int l, int r, int o) {
-        if (l == r) { return tree[o]; }
-        push_down(o, l, r);
-        int mid = (l + r) / 2;
-        if (index <= mid)
-            return _point_query(index, l, mid, o * 2);
-        else
-            return _point_query(index, mid + 1, r, o * 2 + 1);
-    }
-    void _interval_add(int L, int R, T num, int l, int r, int o) {
-        if (L <= l && r <= R) {
-            tree[o] = op(tree[o], mapping(num, r - l + 1));
-            lazy[o] = op(lazy[o], num);
-            return;
-        }
-        push_down(o, l, r);
-        int mid = (l + r) / 2;
-        if (L <= mid) _interval_add(L, R, num, l, mid, o * 2);
-        if (R > mid) _interval_add(L, R, num, mid + 1, r, o * 2 + 1);
-        push_up(o);
-    }
-    T _interval_query(int L, int R, int l, int r, int o) {
-        if (L <= l && r <= R) { return tree[o]; }
-        push_down(o, l, r);
-        int mid = (l + r) / 2;
-        T ans = e();
-        if (L <= mid) ans = op(ans, _interval_query(L, R, l, mid, o * 2));
-        if (R > mid)
-            ans = op(ans, _interval_query(L, R, mid + 1, r, o * 2 + 1));
-        return ans;
+    void push_down(int o) {
+        apply_node(o * 2, lazy[o]);
+        apply_node(o * 2 + 1, lazy[o]);
+        lazy[o] = id();
     }
 
 public:
     explicit SegmentTree(int n) : SegmentTree(std::vector<T>(n, e())) {}
-    explicit SegmentTree(const std::vector<T> &arr) : n(int(arr.size())) {
-        tree.resize(4 * n + 1);
-        lazy.resize(4 * n + 1, e());
-        build(1, n, 1, arr);
+    // 数组下标从 0 开始
+    explicit SegmentTree(const std::vector<T> &arr) : n((int)arr.size()) {
+        size = bitop::bit_ceil(n);
+        log = bitop::countr_zero(size);
+        tree.resize(size * 2, e());
+        lazy.resize(size, id());
+        for (int i = 0; i < n; i++) tree[size + i] = arr[i];
+        for (int i = size - 1; i > 0; i--) push_up(i);
     }
-    void point_add(int index, T num) {
-        if (index < 1 || index > n)
-            throw std::out_of_range("Index out of bounds");
-        _point_add(index, num, 1, n, 1);
+    void assign(int p, T val) {
+        if (p < 0 || p >= n) throw std::out_of_range("Index out of range");
+        p += size;
+        for (int i = log; i >= 1; i--) push_down(p >> i);
+        tree[p] = val;
+        for (int i = 1; i <= log; i++) push_up(p >> i);
     }
-    T point_query(int index) {
-        if (index < 1 || index > n)
-            throw std::out_of_range("Index out of bounds");
-        return _point_query(index, 1, n, 1);
+    void apply(int p, F f) {
+        if (p < 0 || p >= n) throw std::out_of_range("Index out of range");
+        p += size;
+        for (int i = log; i >= 1; i--) push_down(p >> i);
+        tree[p] = mapping(f, tree[p]);
+        for (int i = 1; i <= log; i++) push_up(p >> i);
     }
-    void interval_add(int L, int R, T num) {
-        if (L < 1 || R > n || L > R)
+    // 区间为闭区间 [L, R]，但内部实现的时候使用半开区间 [L, R+1)，下同
+    void apply(int L, int R, F f) {
+        if (L < 0 || R >= n || L > R)
             throw std::out_of_range("Invalid interval");
-        _interval_add(L, R, num, 1, n, 1);
+        L += size;
+        R += size + 1;
+        for (int i = log; i >= 1; i--) {
+            if (((L >> i) << i) != L) push_down(L >> i);
+            if (((R >> i) << i) != R) push_down((R - 1) >> i);
+        }
+        int L0 = L, R0 = R;
+        while (L < R) {
+            if (L & 1) apply_node(L++, f);
+            if (R & 1) apply_node(--R, f);
+            L >>= 1;
+            R >>= 1;
+        }
+        for (int i = 1; i <= log; i++) {
+            if (((L0 >> i) << i) != L0) push_up(L0 >> i);
+            if (((R0 >> i) << i) != R0) push_up((R0 - 1) >> i);
+        }
     }
-    T interval_query(int L, int R) {
-        if (L < 1 || R > n || L > R)
+    T query(int p) {
+        if (p < 0 || p >= n) throw std::out_of_range("Index out of range");
+        p += size;
+        for (int i = log; i >= 1; i--) push_down(p >> i);
+        return tree[p];
+    }
+    T query(int L, int R) {
+        if (L < 0 || R >= n || L > R)
             throw std::out_of_range("Invalid interval");
-        return _interval_query(L, R, 1, n, 1);
+        L += size;
+        R += size + 1;
+        for (int i = log; i >= 1; i--) {
+            if (((L >> i) << i) != L) push_down(L >> i);
+            if (((R >> i) << i) != R) push_down((R - 1) >> i);
+        }
+        T lans = e(), rans = e();
+        while (L < R) {
+            if (L & 1) lans = op(lans, tree[L++]);
+            if (R & 1) rans = op(tree[--R], rans);
+            L >>= 1;
+            R >>= 1;
+        }
+        return op(lans, rans);
     }
 };
 } // namespace mystd

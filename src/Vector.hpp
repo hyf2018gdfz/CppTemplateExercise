@@ -2,9 +2,10 @@
 #define VECTOR_HPP
 
 #include "common.h"
+
+#include <cstring>
 #include <initializer_list>
 #include <type_traits>
-#include <cstring>
 
 namespace mystd {
 

@@ -1,9 +1,10 @@
 #ifndef BINARY_HEAP_HPP
 #define BINARY_HEAP_HPP
 
-#include "common.h"
-#include "Vector.hpp"
 #include "Compare.hpp"
+#include "Vector.hpp"
+#include "common.h"
+
 #include <initializer_list>
 
 namespace mystd {

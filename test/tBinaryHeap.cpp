@@ -1,9 +1,11 @@
 #include "BinaryHeap.hpp"
 #include "Compare.hpp"
 #include "Vector.hpp"
+#include "test.h"
+
+#include <iostream>
 #include <stdexcept>
 #include <string>
-#include <iostream>
 
 using namespace mystd;
 
