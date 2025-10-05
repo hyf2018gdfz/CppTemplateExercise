@@ -38,5 +38,11 @@ jobs:
     - name: Check code format
       run: |
         sudo apt-get install -y clang-format
-        clang-format --dry-run --Werror $(find . -name '*.cpp' -o -name '*.h')
-
+        FILES=$(find . -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) ! -path './build/*')
+        if [ -z "$FILES" ]; then
+          echo "No source files found to check."
+        else
+          echo "Checking format for the following files:"
+          echo "$FILES"
+          clang-format --dry-run --Werror $FILES
+        fi
