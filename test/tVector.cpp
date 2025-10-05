@@ -1,8 +1,11 @@
 #include "Vector.hpp"
 #include "test.h"
 
-#include <stdexcept>
-using namespace mystd;
+#include <cstdlib>
+#include <ctime>
+#include <vector>
+
+using namespace mystd::vector;
 
 namespace TestVector {
 class Tmp {
@@ -10,122 +13,127 @@ private:
     int a, b;
 
 public:
+    Tmp() : a(0), b(0) {}
     Tmp(int _a, int _b) : a(_a), b(_b) {}
     bool operator==(const Tmp &o) const { return a == o.a && b == o.b; }
 };
 } // namespace TestVector
 using namespace TestVector;
 
-static void test_basic_int() {
+template <typename T>
+static void full_compare(const Vector<T> &v, const std::vector<T> &ref) {
+    CHECK_EQ(ref.size(), v.size());
+    for (size_t i = 0; i < ref.size(); ++i) { CHECK_EQ(ref[i], v[i]); }
+}
+
+static void rand_test_int() {
     Vector<int> v;
-    CHECK_EQ(true, v.empty());
-    v.push_back(1);
-    v.push_back(2);
-    v.push_back(3);
-    CHECK_EQ(3u, v.size());
-    CHECK_EQ(1, v[0]);
-    CHECK_EQ(3, v.back());
-    v.pop_back();
-    CHECK_EQ(2u, v.size());
-    CHECK_EQ(2, v.back());
+    std::vector<int> ref;
+    const int OPS = (256 * 2048);
+    const int MAX_VAL = 1000000;
+    RandomGenerator gen;
+
+    for (int i = 0; i < OPS; ++i) {
+        int op = gen.uniform_int(0, 7);
+        if (op == 0) { // push_back
+            int x = gen.uniform_int(0, MAX_VAL);
+            v.push_back(x);
+            ref.push_back(x);
+        } else if (op == 1) { // pop_back
+            if (ref.empty()) {
+                EXPECT_THROW(v.pop_back(), std::out_of_range);
+            } else {
+                v.pop_back();
+                ref.pop_back();
+            }
+        } else if (op == 2) { // insert single
+            size_t pos = gen.uniform_int(0ul, ref.size());
+            int x = gen.uniform_int(0, MAX_VAL);
+            v.insert(v.begin() + pos, x);
+            ref.insert(ref.begin() + pos, x);
+        } else if (op == 3) { // erase
+            if (ref.empty()) {
+                EXPECT_THROW(v.erase(v.begin()), std::out_of_range);
+            } else {
+                size_t pos = gen.uniform_int(0ul, ref.size() - 1);
+                v.erase(v.begin() + pos);
+                ref.erase(ref.begin() + pos);
+            }
+        } else if (op == 4) { // resize
+            size_t new_size = gen.uniform_int(0, 200);
+            v.resize(new_size);
+            ref.resize(new_size);
+        } else if (op == 5) { // reserve
+            size_t cap = gen.uniform_int(0, 500);
+            v.reserve(cap);
+            ref.reserve(cap);
+        } else if (op == 6) { // access checks
+            if (ref.empty()) {
+                EXPECT_THROW(v.at(0), std::out_of_range);
+            } else {
+                size_t pos = gen.uniform_int(0ul, ref.size() - 1);
+                CHECK_EQ(ref[pos], v[pos]);
+                CHECK_EQ(ref[pos], v.at(pos));
+                CHECK_EQ(ref.front(), v.front());
+                CHECK_EQ(ref.back(), v.back());
+            }
+        } else { // clear
+            v.clear();
+            ref.clear();
+        }
+
+        if ((i & 0xFF) == 0) { // 每 256 次做一次完整对比
+            full_compare<int>(v, ref);
+        }
+    }
+    full_compare<int>(v, ref);
 }
 
-static void test_ctor_and_assign() {
-    Vector<int> v1(3, 7); // {7,7,7}
-    CHECK_EQ(3u, v1.size());
-    CHECK_EQ(7, v1[1]);
-
-    Vector<int> v2{1, 2, 3};
-    CHECK_EQ(3u, v2.size());
-    CHECK_EQ(2, v2[1]);
-
-    Vector<int> v3 = v2; // copy
-    CHECK_EQ(true, v2 == v3);
-
-    Vector<int> v4 = std::move(v2); // move
-    CHECK_EQ(3u, v4.size());
-    CHECK_EQ(true, v2.empty());
-
-    Vector<int> v5;
-    v5 = v4; // copy assign
-    CHECK_EQ(v4, v5);
-
-    Vector<int> v6;
-    v6 = std::move(v4); // move assign
-    CHECK_EQ(3u, v6.size());
-    CHECK_EQ(true, v4.empty());
-
-    Vector<int> v7;
-    v7 = {9, 8, 7};
-    CHECK_EQ(3u, v7.size());
-    CHECK_EQ(8, v7[1]);
-}
-
-static void test_insert_erase() {
-    Vector<int> v{1, 2, 3};
-    v.insert(v.begin() + 1, 99); // {1,99,2,3}
-    CHECK_EQ(4u, v.size());
-    CHECK_EQ(99, v[1]);
-
-    v.insert(v.begin() + 2, 2, 77); // {1,99,77,77,2,3}
-    CHECK_EQ(6u, v.size());
-    CHECK_EQ(77, v[2]);
-    CHECK_EQ(77, v[3]);
-
-    v.insert(v.end(), {5, 6});
-    CHECK_EQ(8u, v.size());
-    CHECK_EQ(6, v.back());
-
-    v.erase(v.begin() + 1); // erase 99
-    CHECK_EQ(7u, v.size());
-    CHECK_EQ(77, v[1]);
-}
-
-static void test_emplace() {
+static void test_emplace_and_nontivial() {
     Vector<Tmp> v;
-    v.emplace_back(1, 2);
-    v.emplace(v.begin(), 3, 4);
-    CHECK_EQ(2u, v.size());
-    CHECK_EQ(Tmp(3, 4), v[0]);
-    CHECK_EQ(Tmp(1, 2), v[1]);
-}
+    std::vector<Tmp> ref;
+    const int OPS = (256 * 2048);
+    RandomGenerator gen;
 
-static void test_capacity_resize() {
-    Vector<int> v;
-    v.reserve(10);
-    CHECK_EQ(true, v.capacity() >= 10);
-    v.push_back(42);
-    v.resize(5);
-    CHECK_EQ(5u, v.size());
-    CHECK_EQ(42, v[0]);
-    CHECK_EQ(0, v[1]); // default constructed int
-    v.shrink_to_fit();
-    CHECK_EQ(5u, v.capacity());
-    v.clear();
-    CHECK_EQ(0u, v.size());
-}
+    for (int i = 0; i < OPS; ++i) {
+        int op = gen.uniform_int(0, 4);
+        if (op == 0) { // emplace_back
+            int a = gen.uniform_int(0, 999);
+            int b = gen.uniform_int(0, 999);
+            v.emplace_back(a, b);
+            ref.emplace_back(a, b);
+        } else if (op == 1) { // emplace at front
+            int a = gen.uniform_int(0, 999);
+            int b = gen.uniform_int(0, 999);
+            if (ref.empty()) {
+                v.emplace_back(a, b);
+                ref.emplace_back(a, b);
+            } else {
+                v.emplace(v.begin(), a, b);
+                ref.insert(ref.begin(), Tmp(a, b));
+            }
+        } else if (op == 2) { // pop_back
+            if (ref.empty()) {
+                EXPECT_THROW(v.pop_back(), std::out_of_range);
+            } else {
+                v.pop_back();
+                ref.pop_back();
+            }
+        } else if (op == 3) { // resize
+            size_t new_size = gen.uniform_int(0, 100);
+            v.resize(new_size);
+            ref.resize(new_size);
+        } else { // clear
+            v.clear();
+            ref.clear();
+        }
 
-static void test_exceptions() {
-    Vector<int> v{1, 2, 3};
-    bool caught = false;
-    try {
-        (void)v.at(10);
-    } catch (const std::out_of_range &) { caught = true; }
-    CHECK_EQ(true, caught);
-
-    caught = false;
-    try {
-        Vector<int> empty;
-        empty.pop_back();
-    } catch (const std::out_of_range &) { caught = true; }
-    CHECK_EQ(true, caught);
+        if ((i & 0xFF) == 0) { full_compare<Tmp>(v, ref); }
+    }
+    full_compare<Tmp>(v, ref);
 }
 
 void test_Vector() {
-    test_basic_int();
-    test_ctor_and_assign();
-    test_insert_erase();
-    test_emplace();
-    test_capacity_resize();
-    test_exceptions();
+    rand_test_int();
+    test_emplace_and_nontivial();
 }

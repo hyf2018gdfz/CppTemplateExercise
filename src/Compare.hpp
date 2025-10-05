@@ -1,9 +1,7 @@
 #ifndef COMPARE_HPP
 #define COMPARE_HPP
 
-#include "common.h"
-
-namespace mystd {
+namespace mystd::compare {
 
 template <typename T>
 struct Less {
@@ -14,6 +12,6 @@ template <typename T>
 struct Greater {
     constexpr bool operator()(const T &a, const T &b) const { return a > b; }
 };
-} // namespace mystd
+} // namespace mystd::compare
 
 #endif // COMPARE_HPP

@@ -32,25 +32,28 @@ func id() {
 } // namespace TestSegmentTree
 using namespace TestSegmentTree;
 
+using namespace mystd::segment_tree;
+
 void test_SegmentTree() {
-    srand(time(0));
+    RandomGenerator gen;
     std::vector<node> arr;
-    static int arr_len = 10000;
-    static int query_times = 100000;
-    static int num_range = 100000;
+    const int arr_len = 10000;
+    const int query_times = 100000;
+    const int num_range = 100000;
     for (int i = 0; i < arr_len; i++) {
-        arr.push_back(node{rand() % num_range, 1});
+        arr.push_back(node{gen.uniform_int(0, num_range), 1});
     }
-    mystd::SegmentTree<node, op, e, func, mapping, composition, id> seg(arr);
+    SegmentTree<node, op, e, func, mapping, composition, id> seg(arr);
     std::vector<node> brute = arr;
     for (int i = 0; i < query_times; i++) {
-        int opt = rand() % 5;
-        int l = rand() % arr_len;
-        int r = rand() % arr_len;
+        int opt = gen.uniform_int(0, 4);
+        int l = gen.uniform_int(0, arr_len - 1);
+        int r = gen.uniform_int(0, arr_len - 1);
         if (l > r) std::swap(l, r);
         switch (opt) {
         case 0: {
-            func f{rand() % num_range, rand() % num_range};
+            func f{gen.uniform_int(0, num_range),
+                   gen.uniform_int(0, num_range)};
             seg.apply(l, r, f);
             for (int j = l; j <= r; j++) {
                 brute[j].a = (brute[j].a * f.a % mod + f.b) % mod;
@@ -58,7 +61,8 @@ void test_SegmentTree() {
             break;
         }
         case 1: {
-            func f{rand() % num_range, rand() % num_range};
+            func f{gen.uniform_int(0, num_range),
+                   gen.uniform_int(0, num_range)};
             seg.apply(l, f);
             brute[l].a = (brute[l].a * f.a % mod + f.b) % mod;
             break;
@@ -75,7 +79,7 @@ void test_SegmentTree() {
             CHECK_EQ(ans2.a, ans1.a);
         }
         case 4: {
-            node val{rand() % num_range, 1};
+            node val{gen.uniform_int(0, num_range), 1};
             seg.assign(l, val);
             brute[l] = val;
             break;

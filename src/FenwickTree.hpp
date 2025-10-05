@@ -1,11 +1,12 @@
 #ifndef FENWICKTREE_HPP
 #define FENWICKTREE_HPP
 
-#include "common.h"
+#include "BitOperation.hpp"
 
+#include <stdexcept>
 #include <vector>
 
-namespace mystd {
+namespace mystd::fenwick_tree {
 
 // op: T × T -> T，满足结合律，e 是单位元
 // opInv: 两段前缀和做差
@@ -15,28 +16,26 @@ private:
     int n;
     std::vector<T> tree;
 
-    static constexpr int lowbit(int x) { return x & -x; }
-
 public:
     explicit FenwickTree(int n) : FenwickTree(std::vector<T>(n, e())) {}
     explicit FenwickTree(const std::vector<T> &arr) : n(int(arr.size())) {
         tree.resize(n + 1, e());
         for (int i = 1; i <= n; i++) {
             tree[i] = op(tree[i], arr[i - 1]);
-            int j = i + lowbit(i);
+            int j = i + bitop::lowbit(i);
             if (j <= n) tree[j] = op(tree[j], tree[i]);
         }
     }
 
     void point_add(int index, T value) {
-        for (; index <= n; index += lowbit(index)) {
+        for (; index <= n; index += bitop::lowbit(index)) {
             tree[index] = op(tree[index], value);
         }
     }
 
     T query(int index) const {
         T result = e();
-        for (; index > 0; index -= lowbit(index)) {
+        for (; index > 0; index -= bitop::lowbit(index)) {
             result = op(result, tree[index]);
         }
         return result;
@@ -48,6 +47,6 @@ public:
         return opInv(query(R), query(L - 1));
     }
 };
-} // namespace mystd
+} // namespace mystd::fenwick_tree
 
 #endif // FENWICKTREE_HPP

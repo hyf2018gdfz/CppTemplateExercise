@@ -1,9 +1,12 @@
 #ifndef LINKLIST_HPP
 #define LINKLIST_HPP
 
-#include "common.h"
+#include <cstddef>
+#include <ostream>
+#include <stdexcept>
+#include <utility>
 
-namespace mystd {
+namespace mystd::linklist {
 
 template <typename T>
 class LinkList {
@@ -19,42 +22,41 @@ private:
             val(std::forward<U>(_val)), nxt(nullptr), pre(nullptr) {}
     };
     Node *head, *tail;
-    int len;
+    size_t len;
 
-    void clear() {
-        auto cur = head;
-        while (cur != nullptr) {
-            auto tmp = cur->nxt;
-            delete cur;
-            cur = tmp;
-        }
-        head = tail = nullptr;
-        len = 0;
-    }
-    Node *getNodeAt(int index) {
-        if (index < 0 || index >= len) return nullptr;
+    Node *getNodeAt(size_t index) {
+        if (index >= len) return nullptr;
         Node *cur;
         if (index < len / 2) {
             cur = head;
-            for (int i = 0; i < index; i++) cur = cur->nxt;
+            for (size_t i = 0; i < index; i++) cur = cur->nxt;
         } else {
             cur = tail;
-            for (int i = len - 1; i > index; i--) cur = cur->pre;
+            for (size_t i = len - 1; i > index; i--) cur = cur->pre;
+        }
+        return cur;
+    }
+    const Node *getNodeAt(size_t index) const {
+        if (index >= len) return nullptr;
+        const Node *cur;
+        if (index < len / 2) {
+            cur = head;
+            for (size_t i = 0; i < index; i++) cur = cur->nxt;
+        } else {
+            cur = tail;
+            for (size_t i = len - 1; i > index; i--) cur = cur->pre;
         }
         return cur;
     }
 
 public:
-    bool empty() const { return len == 0; }
-    int size() const { return len; }
-    LinkList() {
-        head = tail = nullptr;
-        len = 0;
-    }
+    bool empty() const noexcept { return len == 0; }
+    size_t size() const noexcept { return len; }
+    ptrdiff_t ssize() const noexcept { return static_cast<ptrdiff_t>(len); }
+
+    LinkList() noexcept : head(nullptr), tail(nullptr), len(0) {}
     ~LinkList() { clear(); }
-    LinkList(const LinkList &other) {
-        head = tail = nullptr;
-        len = 0;
+    LinkList(const LinkList &other) : head(nullptr), tail(nullptr), len(0) {
         auto *cur = other.head;
         while (cur != nullptr) {
             push_back(cur->val);
@@ -90,6 +92,32 @@ public:
         return *this;
     }
 
+    T &operator[](size_t pos) {
+        Node *node = getNodeAt(pos);
+        if (node == nullptr) {
+            throw std::out_of_range("LinkList::operator[] index out of range");
+        }
+        return node->val;
+    }
+    const T &operator[](size_t pos) const {
+        const Node *node = getNodeAt(pos);
+        if (node == nullptr) {
+            throw std::out_of_range("LinkList::operator[] index out of range");
+        }
+        return node->val;
+    }
+
+    void clear() {
+        auto cur = head;
+        while (cur != nullptr) {
+            auto tmp = cur->nxt;
+            delete cur;
+            cur = tmp;
+        }
+        head = tail = nullptr;
+        len = 0;
+    }
+
     template <typename U>
     void push_back(U &&val) {
         Node *newNode = new Node(std::forward<U>(val));
@@ -101,20 +129,6 @@ public:
         tail->nxt = newNode;
         newNode->pre = tail;
         tail = newNode;
-    }
-    bool pop_back() {
-        if (tail == nullptr) return false;
-        len--;
-        if (head == tail) {
-            delete tail;
-            head = tail = nullptr;
-            return true;
-        }
-        auto *tmp = tail;
-        tail = tail->pre;
-        tail->nxt = nullptr;
-        delete tmp;
-        return true;
     }
     template <typename U>
     void push_front(U &&val) {
@@ -128,43 +142,60 @@ public:
         newNode->nxt = head;
         head = newNode;
     }
-    bool pop_front() {
-        if (head == nullptr) return false;
+
+    void pop_back() {
+        if (empty()) {
+            throw std::out_of_range("LinkList::pop_back called on empty list");
+        }
+        len--;
+        if (head == tail) {
+            delete tail;
+            head = tail = nullptr;
+            return;
+        }
+        auto *tmp = tail;
+        tail = tail->pre;
+        tail->nxt = nullptr;
+        delete tmp;
+    }
+    void pop_front() {
+        if (empty()) {
+            throw std::out_of_range("LinkList::pop_front called on empty list");
+        }
         len--;
         if (head == tail) {
             delete head;
             head = tail = nullptr;
-            return true;
+            return;
         }
         auto *tmp = head;
         head = head->nxt;
         head->pre = nullptr;
         delete tmp;
-        return true;
     }
-    bool erase(int index) {
-        if (index < 0 || index >= len) return false;
+
+    void erase(size_t index) {
+        if (index >= len) {
+            throw std::out_of_range("LinkList::erase index out of range");
+        }
         if (index == 0) return pop_front();
         if (index == len - 1) return pop_back();
-        // 根据位置选择遍历方向
+
         auto *cur = getNodeAt(index);
         cur->pre->nxt = cur->nxt;
         cur->nxt->pre = cur->pre;
         delete cur;
         len--;
-        return true;
     }
+
     template <typename U>
-    bool insert(int index, U &&val) {
-        if (index < 0 || index > len) return false;
-        if (index == 0) {
-            push_front(std::forward<U>(val));
-            return true;
+    void insert(size_t index, U &&val) {
+        if (index > len) {
+            throw std::out_of_range("LinkList::insert index out of range");
         }
-        if (index == len) {
-            push_back(std::forward<U>(val));
-            return true;
-        }
+        if (index == 0) return push_front(std::forward<U>(val));
+        if (index == len) return push_back(std::forward<U>(val));
+
         auto *cur = getNodeAt(index);
         Node *newNode = new Node(std::forward<U>(val));
         newNode->pre = cur->pre;
@@ -172,11 +203,11 @@ public:
         cur->pre->nxt = newNode;
         cur->pre = newNode;
         len++;
-        return true;
     }
-    int find(const T &val) const {
+
+    ptrdiff_t find(const T &val) const {
         auto *cur = head;
-        int index = 0;
+        ptrdiff_t index = 0;
         while (cur != nullptr) {
             if (cur->val == val) return index;
             cur = cur->nxt;
@@ -184,6 +215,7 @@ public:
         }
         return -1;
     }
+
     friend std::ostream &operator<<(std::ostream &os, const LinkList &lst) {
         os << "[";
         auto *cur = lst.head;
@@ -196,6 +228,6 @@ public:
         return os;
     }
 };
-} // namespace mystd
+} // namespace mystd::linklist
 
 #endif // LINKLIST_HPP

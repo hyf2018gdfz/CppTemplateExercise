@@ -7,13 +7,13 @@
 
 #include <initializer_list>
 
-namespace mystd {
+namespace mystd::binary_heap {
 
 /// INFO: 基于 mystd::Vector 实现的二叉堆，默认大根堆
-template <typename T, typename Compare = mystd::Less<T>>
+template <typename T, typename Compare = mystd::compare::Less<T>>
 class BinaryHeap {
 private:
-    Vector<T> m_data;
+    vector::Vector<T> m_data;
     Compare m_comp;
 
     void sift_up(size_t idx) {
@@ -92,6 +92,6 @@ private:
     }
 };
 
-} // namespace mystd
+} // namespace mystd::binary_heap
 
 #endif // BINARY_HEAP_HPP

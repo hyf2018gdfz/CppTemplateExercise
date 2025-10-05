@@ -3,11 +3,13 @@
 
 #include "common.h"
 
+#include <cstddef>
 #include <cstring>
 #include <initializer_list>
-#include <type_traits>
+#include <new>
+#include <stdexcept>
 
-namespace mystd {
+namespace mystd::vector {
 
 /// INFO: 完全使用 placement new/delete 进行内存管理
 template <typename T>
@@ -18,13 +20,6 @@ private:
     T *m_data = nullptr;
 
     static constexpr size_t GROWTH_FACTOR = 2;
-
-    /// INFO: 仅析构并释放 m_data，不影响 m_size 和 m_capacity
-    inline void destroy_data() {
-        for (size_t i = 0; i < m_size; i++) { m_data[i].~T(); }
-        ::operator delete(m_data);
-        m_data = nullptr;
-    }
 
 public:
     Vector() noexcept = default;
@@ -64,13 +59,17 @@ public:
             for (auto &val : init) { new (&m_data[i++]) T(val); }
         }
     }
-    ~Vector() { destroy_data(); }
+    ~Vector() {
+        for (size_t i = 0; i < m_size; i++) { m_data[i].~T(); }
+        ::operator delete(m_data);
+    }
 
     Vector &operator=(const Vector &other) {
         if (this == &other) return *this;
-        destroy_data();
+        clear();
         m_size = other.m_size;
         m_capacity = other.m_capacity;
+        m_data = nullptr;
         if (m_capacity > 0) {
             m_data = static_cast<T *>(::operator new(m_capacity * sizeof(T)));
             for (size_t i = 0; i < m_size; i++) {
@@ -81,7 +80,7 @@ public:
     }
     Vector &operator=(Vector &&other) noexcept {
         if (this == &other) return *this;
-        destroy_data();
+        clear();
         m_size = other.m_size;
         m_capacity = other.m_capacity;
         m_data = other.m_data;
@@ -91,9 +90,10 @@ public:
         return *this;
     }
     Vector &operator=(std::initializer_list<T> init) {
-        destroy_data();
+        clear();
         m_size = init.size();
         m_capacity = init.size();
+        m_data = nullptr;
         if (m_capacity > 0) {
             m_data = static_cast<T *>(::operator new(m_capacity * sizeof(T)));
             size_t i = 0;
@@ -105,17 +105,19 @@ public:
     T &operator[](size_t pos) { return m_data[pos]; }
     const T &operator[](size_t pos) const { return m_data[pos]; }
     T &at(size_t pos) {
-        if (pos >= m_size) throw std::out_of_range("Vector::at out of range");
+        if (pos >= m_size)
+            throw std::out_of_range("Vector::at index out of range");
         return m_data[pos];
     }
     const T &at(size_t pos) const {
-        if (pos >= m_size) throw std::out_of_range("Vector::at out of range");
+        if (pos >= m_size)
+            throw std::out_of_range("Vector::at index out of range");
         return m_data[pos];
     }
 
     /// INFO: clear 清空 m_data 但不清空 m_capacity
     void clear() {
-        destroy_data();
+        for (size_t i = 0; i < m_size; i++) { m_data[i].~T(); }
         m_size = 0;
     }
 
@@ -144,7 +146,8 @@ public:
     template <typename U>
     T *insert(T *loc_ptr, U &&val) {
         size_t pos = loc_ptr - m_data;
-        if (pos > m_size) throw std::out_of_range("Vector::at out of range");
+        if (pos > m_size)
+            throw std::out_of_range("Vector::insert index out of range");
         if (m_size == m_capacity) {
             size_t new_cap = (m_capacity == 0 ? 1 : m_capacity * GROWTH_FACTOR);
             reserve(new_cap);
@@ -162,11 +165,12 @@ public:
     template <typename U>
     T *insert(T *loc_ptr, size_t count, U &&val) {
         size_t pos = loc_ptr - m_data;
-        if (pos > m_size) throw std::out_of_range("Vector::at out of range");
+        if (pos > m_size)
+            throw std::out_of_range("Vector::insert index out of range");
         if (m_size + count > m_capacity) {
             size_t geometric_growth_cap =
                 (m_capacity == 0 ? 1 : m_capacity * GROWTH_FACTOR);
-            reserve(std::max(geometric_growth_cap, m_size + count));
+            reserve(mystd::max(geometric_growth_cap, m_size + count));
         }
         if (pos < m_size) {
             for (size_t i = m_size; i > pos; i--) {
@@ -180,12 +184,13 @@ public:
     }
     T *insert(T *loc_ptr, std::initializer_list<T> init) {
         size_t pos = loc_ptr - m_data;
-        if (pos > m_size) throw std::out_of_range("Vector::at out of range");
+        if (pos > m_size)
+            throw std::out_of_range("Vector::insert index out of range");
         size_t count = init.size();
         if (m_size + count > m_capacity) {
             size_t geometric_growth_cap =
                 (m_capacity == 0 ? 1 : m_capacity * GROWTH_FACTOR);
-            reserve(std::max(geometric_growth_cap, m_size + count));
+            reserve(mystd::max(geometric_growth_cap, m_size + count));
         }
         if (pos < m_size) {
             for (size_t i = m_size; i > pos; i--) {
@@ -201,7 +206,8 @@ public:
     template <typename... Args>
     T *emplace(T *loc_ptr, Args &&...args) {
         size_t pos = loc_ptr - m_data;
-        if (pos > m_size) throw std::out_of_range("Vector::at out of range");
+        if (pos > m_size)
+            throw std::out_of_range("Vector::emplace index out of range");
         if (m_size == m_capacity) {
             size_t new_cap = (m_capacity == 0 ? 1 : m_capacity * GROWTH_FACTOR);
             reserve(new_cap);
@@ -218,7 +224,8 @@ public:
     }
     T *erase(T *loc_ptr) {
         size_t pos = loc_ptr - m_data;
-        if (pos >= m_size) throw std::out_of_range("Vector::at out of range");
+        if (pos >= m_size)
+            throw std::out_of_range("Vector::erase index out of range");
         for (size_t i = pos; i < m_size - 1; i++) {
             m_data[i] = std::move(m_data[i + 1]);
         }
@@ -227,7 +234,8 @@ public:
     }
 
     void pop_back() {
-        if (m_size == 0) throw std::out_of_range("Vector::at out of range");
+        if (m_size == 0)
+            throw std::out_of_range("Vector::pop_back called on empty vector");
         m_data[--m_size].~T();
     }
 
@@ -238,19 +246,23 @@ public:
     }
 
     T &front() {
-        if (m_size == 0) throw std::out_of_range("Vector::at out of range");
+        if (m_size == 0)
+            throw std::out_of_range("Vector::front called on empty vector");
         return m_data[0];
     }
     const T &front() const {
-        if (m_size == 0) throw std::out_of_range("Vector::at out of range");
+        if (m_size == 0)
+            throw std::out_of_range("Vector::front called on empty vector");
         return m_data[0];
     }
     T &back() {
-        if (m_size == 0) throw std::out_of_range("Vector::at out of range");
+        if (m_size == 0)
+            throw std::out_of_range("Vector::back called on empty vector");
         return m_data[m_size - 1];
     }
     const T &back() const {
-        if (m_size == 0) throw std::out_of_range("Vector::at out of range");
+        if (m_size == 0)
+            throw std::out_of_range("Vector::back called on empty vector");
         return m_data[m_size - 1];
     }
     T *begin() { return m_data; }
@@ -284,7 +296,8 @@ public:
     void shrink_to_fit() {
         if (m_size == m_capacity) return;
         if (m_size == 0) {
-            destroy_data();
+            clear();
+            m_data = nullptr;
             m_capacity = 0;
             return;
         }
@@ -311,6 +324,6 @@ public:
     }
     bool operator!=(const Vector &ano) const { return !(*this == ano); }
 };
-} // namespace mystd
+} // namespace mystd::vector
 
 #endif

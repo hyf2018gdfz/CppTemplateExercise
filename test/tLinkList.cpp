@@ -1,74 +1,96 @@
 #include "LinkList.hpp"
 #include "test.h"
 
+#include <cstdlib>
+#include <ctime>
+#include <sstream>
+#include <vector>
+
+using namespace mystd::linklist;
+
+static std::string vec_to_string(const std::vector<int> &v) {
+    std::ostringstream oss;
+    oss << "[";
+    for (size_t i = 0; i < v.size(); ++i) {
+        if (i) oss << ", ";
+        oss << v[i];
+    }
+    oss << "]";
+    return oss.str();
+}
+
+static void full_compare(const LinkList<int> &lst,
+                         const std::vector<int> &ref) {
+    CHECK_EQ(ref.size(), lst.size());
+    for (size_t i = 0; i < ref.size(); ++i) { CHECK_EQ(ref[i], lst[i]); }
+    std::ostringstream oss;
+    oss << lst;
+    CHECK_EQ(vec_to_string(ref), oss.str());
+}
+
 void test_LinkList() {
-    mystd::LinkList<int> list;
+    RandomGenerator gen;
+    LinkList<int> lst;
+    std::vector<int> ref;
 
-    // 初始状态测试
-    CHECK_EQ(0, list.size());
-    CHECK_EQ(false, list.pop_front());
-    CHECK_EQ(false, list.pop_back());
+    const int OPS = 200000;
+    const int MAX_VAL = 1000000;
 
-    // push_back 测试
-    list.push_back(1);
-    list.push_back(2);
-    list.push_back(3);
-    {
-        std::ostringstream oss;
-        oss << list;
-        CHECK_EQ("[1, 2, 3]", oss.str());
+    for (int it = 0; it < OPS; ++it) {
+        int op = gen.uniform_int(0, 7);
+        if (op == 0) { // push_back
+            int x = gen.uniform_int(0, MAX_VAL);
+            lst.push_back(x);
+            ref.push_back(x);
+        } else if (op == 1) { // push_front
+            int x = gen.uniform_int(0, MAX_VAL);
+            lst.push_front(x);
+            ref.insert(ref.begin(), x);
+        } else if (op == 2) { // pop_back
+            if (ref.empty()) {
+                EXPECT_THROW(lst.pop_back(), std::out_of_range);
+            } else {
+                lst.pop_back();
+                ref.pop_back();
+            }
+        } else if (op == 3) { // pop_front
+            if (ref.empty()) {
+                EXPECT_THROW(lst.pop_front(), std::out_of_range);
+            } else {
+                lst.pop_front();
+                ref.erase(ref.begin());
+            }
+        } else if (op == 4) { // insert
+            size_t pos = gen.uniform_int(0ul, ref.size());
+            int x = gen.uniform_int(0, MAX_VAL);
+            lst.insert(pos, x);
+            ref.insert(ref.begin() + pos, x);
+        } else if (op == 5) { // erase
+            if (ref.empty()) {
+                EXPECT_THROW(lst.erase(0), std::out_of_range);
+            } else {
+                size_t pos = gen.uniform_int(0ul, ref.size() - 1);
+                lst.erase(pos);
+                ref.erase(ref.begin() + pos);
+            }
+        } else if (op == 6) { // find / operator[] / out_of_range
+            if (ref.empty()) {
+                EXPECT_THROW(lst[0], std::out_of_range);
+                CHECK_EQ(-1, lst.find(12345678));
+            } else {
+                size_t pos = gen.uniform_int(0ul, ref.size() - 1);
+                CHECK_EQ(ref[pos], lst[pos]);
+                CHECK_EQ(static_cast<ptrdiff_t>(pos), lst.find(ref[pos]));
+                // search for non-existing value
+                int v = 12345678;
+                CHECK_EQ(-1, lst.find(v));
+            }
+        } else { // clear
+            lst.clear();
+            ref.clear();
+        }
+
+        if ((it & 0xFF) == 0) { full_compare(lst, ref); }
     }
-
-    // push_front 测试
-    list.push_front(0);
-    {
-        std::ostringstream oss;
-        oss << list;
-        CHECK_EQ("[0, 1, 2, 3]", oss.str());
-    }
-
-    // pop_back 测试
-    CHECK_EQ(true, list.pop_back());
-    {
-        std::ostringstream oss;
-        oss << list;
-        CHECK_EQ("[0, 1, 2]", oss.str());
-    }
-
-    // pop_front 测试
-    CHECK_EQ(true, list.pop_front());
-    {
-        std::ostringstream oss;
-        oss << list;
-        CHECK_EQ("[1, 2]", oss.str());
-    }
-
-    // insert 测试
-    CHECK_EQ(true, list.insert(1, 99));
-    {
-        std::ostringstream oss;
-        oss << list;
-        CHECK_EQ("[1, 99, 2]", oss.str());
-    }
-
-    // erase 测试
-    CHECK_EQ(true, list.erase(1));
-    {
-        std::ostringstream oss;
-        oss << list;
-        CHECK_EQ("[1, 2]", oss.str());
-    }
-
-    // find 测试
-    CHECK_EQ(0, list.find(1));
-    CHECK_EQ(1, list.find(2));
-    CHECK_EQ(-1, list.find(99));
-
-    // 清空链表测试
-    list.pop_back();
-    list.pop_back();
-    CHECK_EQ(true, list.empty());
-    CHECK_EQ(0, list.size());
-    CHECK_EQ(false, list.pop_back());
-    CHECK_EQ(false, list.pop_front());
+    full_compare(lst, ref);
 }

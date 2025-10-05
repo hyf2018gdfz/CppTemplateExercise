@@ -3,9 +3,10 @@
 
 #include "BitOperation.hpp"
 
+#include <stdexcept>
 #include <vector>
 
-namespace mystd {
+namespace mystd::segment_tree {
 
 template <typename T,
           T (*op)(T, T),
@@ -43,14 +44,16 @@ public:
         for (int i = size - 1; i > 0; i--) push_up(i);
     }
     void assign(int p, T val) {
-        if (p < 0 || p >= n) throw std::out_of_range("Index out of range");
+        if (p < 0 || p >= n)
+            throw std::out_of_range("SegmentTree::assign index out of range");
         p += size;
         for (int i = log; i >= 1; i--) push_down(p >> i);
         tree[p] = val;
         for (int i = 1; i <= log; i++) push_up(p >> i);
     }
     void apply(int p, F f) {
-        if (p < 0 || p >= n) throw std::out_of_range("Index out of range");
+        if (p < 0 || p >= n)
+            throw std::out_of_range("SegmentTree::apply index out of range");
         p += size;
         for (int i = log; i >= 1; i--) push_down(p >> i);
         tree[p] = mapping(f, tree[p]);
@@ -59,7 +62,7 @@ public:
     // 区间为闭区间 [L, R]，但内部实现的时候使用半开区间 [L, R+1)，下同
     void apply(int L, int R, F f) {
         if (L < 0 || R >= n || L > R)
-            throw std::out_of_range("Invalid interval");
+            throw std::out_of_range("SegmentTree::apply invalid interval");
         L += size;
         R += size + 1;
         for (int i = log; i >= 1; i--) {
@@ -79,14 +82,15 @@ public:
         }
     }
     T query(int p) {
-        if (p < 0 || p >= n) throw std::out_of_range("Index out of range");
+        if (p < 0 || p >= n)
+            throw std::out_of_range("SegmentTree::query index out of range");
         p += size;
         for (int i = log; i >= 1; i--) push_down(p >> i);
         return tree[p];
     }
     T query(int L, int R) {
         if (L < 0 || R >= n || L > R)
-            throw std::out_of_range("Invalid interval");
+            throw std::out_of_range("SegmentTree::query invalid interval");
         L += size;
         R += size + 1;
         for (int i = log; i >= 1; i--) {
@@ -103,6 +107,6 @@ public:
         return op(lans, rans);
     }
 };
-} // namespace mystd
+} // namespace mystd::segment_tree
 
 #endif // SEGMENTTREE_HPP

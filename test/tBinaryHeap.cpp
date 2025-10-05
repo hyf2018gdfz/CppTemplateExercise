@@ -1,13 +1,11 @@
 #include "BinaryHeap.hpp"
 #include "Compare.hpp"
-#include "Vector.hpp"
 #include "test.h"
 
-#include <iostream>
-#include <stdexcept>
 #include <string>
 
-using namespace mystd;
+using namespace mystd::binary_heap;
+using namespace mystd::compare;
 
 struct Person {
     std::string name;
@@ -68,17 +66,12 @@ static void test_initializer_list() {
 
 static void test_exceptions() {
     BinaryHeap<int, Greater<int>> h;
-    bool caught = false;
-    try {
-        h.top();
-    } catch (const std::out_of_range &) { caught = true; }
-    CHECK_EQ(true, caught);
-
-    caught = false;
-    try {
-        h.pop();
-    } catch (const std::out_of_range &) { caught = true; }
-    CHECK_EQ(true, caught);
+    EXPECT_THROW(h.top(), std::out_of_range);
+    EXPECT_THROW(h.pop(), std::out_of_range);
+    h.push(1);
+    EXPECT_NO_THROW(h.top());
+    EXPECT_NO_THROW(h.pop());
+    EXPECT_THROW(h.pop(), std::out_of_range);
 }
 
 void test_BinaryHeap() {

@@ -1,20 +1,21 @@
 #ifndef BITOPERATION_HPP
 #define BITOPERATION_HPP
 
-#include "common.h"
-
 namespace mystd::bitop {
 
 using ull = unsigned long long;
-ull bit_ceil(ull n) {
+constexpr ull bit_ceil(ull n) noexcept {
     ull x = 1;
     while (x < n) x <<= 1;
     return x;
 }
-ull countr_zero(ull n) {
+constexpr ull countr_zero(ull n) noexcept {
     ull x = 0;
     while (!(n & (1ull << x))) x++;
     return x;
+}
+constexpr ull lowbit(ull n) noexcept {
+    return n & -n;
 }
 } // namespace mystd::bitop
 

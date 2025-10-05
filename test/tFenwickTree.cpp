@@ -8,8 +8,10 @@ auto sub = [](int x, int y) { return x - y; };
 }; // namespace TestFenwickTree
 using namespace TestFenwickTree;
 
+using namespace mystd::fenwick_tree;
+
 void test_FenwickTree() {
-    mystd::FenwickTree<int, e, add, sub> tree({1, 2, 3, 4, 5});
+    FenwickTree<int, e, add, sub> tree({1, 2, 3, 4, 5});
     CHECK_EQ(15, tree.interval_query(1, 5));
     tree.point_add(3, 2);
     CHECK_EQ(16, tree.interval_query(2, 5));
