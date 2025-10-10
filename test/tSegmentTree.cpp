@@ -20,11 +20,12 @@ node op(node l, node r) {
 node e() {
     return node{0, 0};
 }
-node mapping(func l, node r) {
-    return node{(r.a * l.a % mod + r.size * l.b % mod) % mod, r.size};
+node mapping(func fn, node nd) {
+    return node{(nd.a * fn.a % mod + nd.size * fn.b % mod) % mod, nd.size};
 }
-func composition(func l, func r) {
-    return func{r.a * l.a % mod, (r.b * l.a % mod + l.b) % mod};
+func composition(func new_fn, func old_fn) {
+    return func{new_fn.a * old_fn.a % mod,
+                (new_fn.a * old_fn.b % mod + new_fn.b) % mod};
 }
 func id() {
     return func{1, 0};

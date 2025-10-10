@@ -10,11 +10,19 @@
 
 ## 编译与运行
 
+编译环境：C++17, CMake。
+
 以下是一个编译示例：
 
 ```bash
-cmake -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug ./
-cmake --build ./build
+$ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug ./
+$ cmake --build ./build
 ```
 
-它会在 `/build` 文件夹内生成集成测试入口 `mytest`，运行该可执行文件即可看到所有测试的结果，添加 `--module` 命令行可以指定要运行的测试。支持的测试可以在主函数中看到。
+它会在 `build` 文件夹内生成集成测试入口 `mytest`，运行该可执行文件即可看到所有测试的结果，添加 `--module` 参数可以指定要运行的测试。如：
+
+```bash
+$ ./build/mytest --module=SegmentTree,LinkList
+```
+
+所有支持的测试可以在 `test/main.cpp` 中看到。
