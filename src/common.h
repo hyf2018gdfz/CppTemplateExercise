@@ -4,7 +4,7 @@
 #include <utility>
 
 namespace mystd {
-// NOLINTBEGIN
+// NOLINTBEGIN(readability-identifier-naming, readability-identifier-length)
 template <typename T>
 void swap(T &a, T &b) noexcept {
   T temp = std::move(a);
@@ -21,7 +21,7 @@ template <typename T>
 auto min(const T &a, const T &b) noexcept -> T {
   return (a < b ? a : b);
 }
-// NOLINTEND
+// NOLINTEND(readability-identifier-naming, readability-identifier-length)
 }  // namespace mystd
 
 #endif  // COMMON_H

@@ -2,7 +2,7 @@
 #define BITOPERATION_HPP
 
 namespace mystd::bitop {
-// NOLINTBEGIN
+// NOLINTBEGIN(readability-identifier-naming, readability-identifier-length)
 using ull = unsigned long long;
 constexpr auto bitCeil(ull n) noexcept -> ull {
   ull x = 1;
@@ -19,7 +19,7 @@ constexpr auto countrZero(ull n) noexcept -> ull {
   return x;
 }
 constexpr auto lowbit(ull n) noexcept -> ull { return n & -n; }
-// NOLINTEND
+// NOLINTEND(readability-identifier-naming, readability-identifier-length)
 }  // namespace mystd::bitop
 
 #endif  // BITOPERATION_HPP

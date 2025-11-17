@@ -4,7 +4,6 @@
 #include "Compare.hpp"
 #include "test.h"
 
-
 using namespace mystd::binary_heap;
 using namespace mystd::compare;
 
