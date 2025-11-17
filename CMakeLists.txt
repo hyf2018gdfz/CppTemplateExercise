@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
-file(GLOB_RECURSE DS_HEADERS "${SRC_DIR}/*.hpp" "${SRC_DIR}/common.h")
+file(GLOB_RECURSE DS_HEADERS "${SRC_DIR}/*.hpp" "${SRC_DIR}/common.h" "${SRC_DIR}/test.h" "${TEST_DIR}/testcase.h")
 set(TEST_DIR "${CMAKE_SOURCE_DIR}/test")
 file(GLOB TEST_SOURCES "${TEST_DIR}" "${TEST_DIR}/t*.cpp")
 

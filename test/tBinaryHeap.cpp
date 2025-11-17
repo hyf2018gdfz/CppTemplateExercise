@@ -3,6 +3,7 @@
 #include "BinaryHeap.hpp"
 #include "Compare.hpp"
 #include "test.h"
+#include "testcase.h"
 
 using namespace mystd::binary_heap;
 using namespace mystd::compare;

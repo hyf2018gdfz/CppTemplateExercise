@@ -5,7 +5,7 @@
 
 #include "LinkList.hpp"
 #include "test.h"
-
+#include "testcase.h"
 
 using namespace mystd::linklist;
 
@@ -43,24 +43,24 @@ void test_LinkList() {
     int op = gen.uniform_int(0, 7);
     if (op == 0) {  // push_back
       int x = gen.uniform_int(0, MAX_VAL);
-      lst.push_back(x);
+      lst.pushBack(x);
       ref.push_back(x);
     } else if (op == 1) {  // push_front
       int x = gen.uniform_int(0, MAX_VAL);
-      lst.push_front(x);
+      lst.pushFront(x);
       ref.insert(ref.begin(), x);
     } else if (op == 2) {  // pop_back
       if (ref.empty()) {
-        EXPECT_THROW(lst.pop_back(), std::out_of_range);
+        EXPECT_THROW(lst.popBack(), std::out_of_range);
       } else {
-        lst.pop_back();
+        lst.popBack();
         ref.pop_back();
       }
     } else if (op == 3) {  // pop_front
       if (ref.empty()) {
-        EXPECT_THROW(lst.pop_front(), std::out_of_range);
+        EXPECT_THROW(lst.popFront(), std::out_of_range);
       } else {
-        lst.pop_front();
+        lst.popFront();
         ref.erase(ref.begin());
       }
     } else if (op == 4) {  // insert

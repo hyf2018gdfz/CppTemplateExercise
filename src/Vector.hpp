@@ -109,19 +109,19 @@ public:
     return *this;
   }
 
-  auto operator[](size_t pos) -> T & { return data_[pos]; }
-  auto operator[](size_t pos) const -> const T & { return data_[pos]; }
-  auto at(size_t pos) -> T & {
-    if (pos >= size_) {
+  auto operator[](size_t ind) -> T & { return data_[ind]; }
+  auto operator[](size_t ind) const -> const T & { return data_[ind]; }
+  auto at(size_t ind) -> T & {
+    if (ind >= size_) {
       throw std::out_of_range("Vector::at index out of range");
     }
-    return data_[pos];
+    return data_[ind];
   }
-  auto at(size_t pos) const -> const T & {
-    if (pos >= size_) {
+  auto at(size_t ind) const -> const T & {
+    if (ind >= size_) {
       throw std::out_of_range("Vector::at index out of range");
     }
-    return data_[pos];
+    return data_[ind];
   }
 
   /// INFO: clear 清空 m_data 但不清空 m_capacity
@@ -156,28 +156,28 @@ public:
   /// 2. 对于插入多个元素，统一新地址 placement new，旧地址析构
   template <typename U>
   auto insert(T *loc_ptr, U &&val) -> T * {
-    size_t pos = loc_ptr - data_;
-    if (pos > size_) {
+    size_t ind = loc_ptr - data_;
+    if (ind > size_) {
       throw std::out_of_range("Vector::insert index out of range");
     }
     if (size_ == capacity_) {
       size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * growth_factor);
       reserve(new_cap);
     }
-    if (pos < size_) {
+    if (ind < size_) {
       new (&data_[size_]) T(std::move(data_[size_ - 1]));
-      for (size_t i = size_ - 1; i > pos; i--) {
+      for (size_t i = size_ - 1; i > ind; i--) {
         data_[i] = std::move(data_[i - 1]);
       }
     }
-    data_[pos] = T(std::forward<U>(val));
+    data_[ind] = T(std::forward<U>(val));
     size_++;
-    return data_ + pos;
+    return data_ + ind;
   }
   template <typename U>
   auto insert(T *loc_ptr, size_t count, U &&val) -> T * {
-    size_t pos = loc_ptr - data_;
-    if (pos > size_) {
+    size_t ind = loc_ptr - data_;
+    if (ind > size_) {
       throw std::out_of_range("Vector::insert index out of range");
     }
     if (size_ + count > capacity_) {
@@ -185,21 +185,21 @@ public:
           (capacity_ == 0 ? 1 : capacity_ * growth_factor);
       reserve(mystd::max(geometric_growth_cap, size_ + count));
     }
-    if (pos < size_) {
-      for (size_t i = size_; i > pos; i--) {
+    if (ind < size_) {
+      for (size_t i = size_; i > ind; i--) {
         new (&data_[i + count - 1]) T(std::move(data_[i - 1]));
         data_[i - 1].~T();
       }
     }
-    for (size_t i = pos; i < pos + count; i++) {
+    for (size_t i = ind; i < ind + count; i++) {
       new (&data_[i]) T(val);
     }
     size_ += count;
-    return data_ + pos;
+    return data_ + ind;
   }
   auto insert(T *loc_ptr, std::initializer_list<T> init) -> T * {
-    size_t pos = loc_ptr - data_;
-    if (pos > size_) {
+    size_t ind = loc_ptr - data_;
+    if (ind > size_) {
       throw std::out_of_range("Vector::insert index out of range");
     }
     size_t count = init.size();
@@ -208,46 +208,46 @@ public:
           (capacity_ == 0 ? 1 : capacity_ * growth_factor);
       reserve(mystd::max(geometric_growth_cap, size_ + count));
     }
-    if (pos < size_) {
-      for (size_t i = size_; i > pos; i--) {
+    if (ind < size_) {
+      for (size_t i = size_; i > ind; i--) {
         new (&data_[i + count - 1]) T(std::move(data_[i - 1]));
         data_[i - 1].~T();
       }
     }
-    std::uninitialized_copy(init.begin(), init.end(), data_ + pos);
+    std::uninitialized_copy(init.begin(), init.end(), data_ + ind);
     size_ += count;
-    return data_ + pos;
+    return data_ + ind;
   }
   template <typename... Args>
   auto emplace(T *loc_ptr, Args &&...args) -> T * {
-    size_t pos = loc_ptr - data_;
-    if (pos > size_) {
+    size_t ind = loc_ptr - data_;
+    if (ind > size_) {
       throw std::out_of_range("Vector::emplace index out of range");
     }
     if (size_ == capacity_) {
       size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * growth_factor);
       reserve(new_cap);
     }
-    if (pos < size_) {
+    if (ind < size_) {
       new (&data_[size_]) T(std::move(data_[size_ - 1]));
-      for (size_t i = size_ - 1; i > pos; i--) {
+      for (size_t i = size_ - 1; i > ind; i--) {
         data_[i] = std::move(data_[i - 1]);
       }
     }
-    data_[pos] = T(std::forward<Args>(args)...);
+    data_[ind] = T(std::forward<Args>(args)...);
     size_++;
-    return data_ + pos;
+    return data_ + ind;
   }
   auto erase(T *loc_ptr) -> T * {
-    size_t pos = loc_ptr - data_;
-    if (pos >= size_) {
+    size_t ind = loc_ptr - data_;
+    if (ind >= size_) {
       throw std::out_of_range("Vector::erase index out of range");
     }
-    for (size_t i = pos; i < size_ - 1; i++) {
+    for (size_t i = ind; i < size_ - 1; i++) {
       data_[i] = std::move(data_[i + 1]);
     }
     data_[--size_].~T();
-    return data_ + pos;
+    return data_ + ind;
   }
 
   void popBack() {

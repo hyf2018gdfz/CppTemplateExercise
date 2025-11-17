@@ -1,34 +1,42 @@
-#include "Vector.hpp"
+#ifndef STACK_HPP
+#define STACK_HPP
 
 #include <initializer_list>
 #include <utility>
 
+#include "Vector.hpp"
+
 namespace mystd::stack {
-template <typename T> class Stack {
+template <typename T>
+class Stack {
 private:
-  vector::Vector<T> m_data;
+  vector::Vector<T> data_;
 
 public:
   Stack() = default;
-  Stack(std::initializer_list<T> init) : m_data(init) {}
+  Stack(std::initializer_list<T> init) : data_(init) {}
 
-  bool empty() const { return m_data.empty(); }
-  size_t size() const { return m_data.size(); }
+  [[nodiscard]] auto empty() const -> bool { return data_.empty(); }
+  [[nodiscard]] auto size() const -> size_t { return data_.size(); }
 
-  const T &top() const {
-    if (empty())
+  auto top() const -> const T & {
+    if (empty()) {
       throw std::out_of_range("Stack::top on empty stack");
-    return m_data[0];
+    }
+    return data_.back();
   }
 
-  template <typename U> void push(U &&val) {
-    m_data.push_back(std::forward(val));
+  template <typename U>
+  void push(U &&val) {
+    data_.pushBack(std::forward<U>(val));
   }
 
   void pop() {
-    if (empty())
+    if (empty()) {
       throw std::out_of_range("Stack::pop on empty stack");
-    m_data.pop_back();
+    }
+    data_.popBack();
   }
 };
-} // namespace mystd::stack
+}  // namespace mystd::stack
+#endif

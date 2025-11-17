@@ -2,6 +2,7 @@
 
 #include "SegmentTree.hpp"
 #include "test.h"
+#include "testcase.h"
 
 namespace TestSegmentTree {
 const int mod = 1e9 + 7;

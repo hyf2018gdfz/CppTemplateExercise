@@ -4,6 +4,7 @@
 
 #include "Vector.hpp"
 #include "test.h"
+#include "testcase.h"
 
 using namespace mystd::vector;
 
