@@ -1,13 +1,14 @@
 #ifndef VECTOR_HPP
 #define VECTOR_HPP
 
-#include "common.h"
-
 #include <cstddef>
 #include <cstring>
 #include <initializer_list>
+#include <memory>
 #include <new>
 #include <stdexcept>
+
+#include "common.h"
 
 namespace mystd::vector {
 
@@ -15,315 +16,348 @@ namespace mystd::vector {
 template <typename T>
 class Vector {
 private:
-    size_t m_size = 0;
-    size_t m_capacity = 0;
-    T *m_data = nullptr;
+  size_t size_ = 0;
+  size_t capacity_ = 0;
+  T *data_ = nullptr;
 
-    static constexpr size_t GROWTH_FACTOR = 2;
+  static constexpr size_t growth_factor = 2;
 
 public:
-    Vector() noexcept = default;
-    explicit Vector(size_t count) : m_size(count), m_capacity(count) {
-        if (m_capacity > 0) {
-            m_data = static_cast<T *>(::operator new(m_capacity * sizeof(T)));
-            for (size_t i = 0; i < m_size; i++) { new (&m_data[i]) T(); }
-        }
+  Vector() noexcept = default;
+  explicit Vector(size_t count) : size_(count), capacity_(count) {
+    if (capacity_ > 0) {
+      data_ = static_cast<T *>(::operator new(capacity_ * sizeof(T)));
+      for (size_t i = 0; i < size_; i++) {
+        new (&data_[i]) T();
+      }
     }
-    Vector(size_t count, const T &val) : m_size(count), m_capacity(count) {
-        if (m_capacity > 0) {
-            m_data = static_cast<T *>(::operator new(m_capacity * sizeof(T)));
-            for (size_t i = 0; i < m_size; i++) { new (&m_data[i]) T(val); }
-        }
+  }
+  Vector(size_t count, const T &val) : size_(count), capacity_(count) {
+    if (capacity_ > 0) {
+      data_ = static_cast<T *>(::operator new(capacity_ * sizeof(T)));
+      for (size_t i = 0; i < size_; i++) {
+        new (&data_[i]) T(val);
+      }
     }
-    Vector(const Vector &other) :
-        m_size(other.m_size), m_capacity(other.m_capacity) {
-        if (m_capacity > 0) {
-            m_data = static_cast<T *>(::operator new(m_capacity * sizeof(T)));
-            for (size_t i = 0; i < m_size; i++) {
-                new (&m_data[i]) T(other.m_data[i]);
-            }
-        }
+  }
+  Vector(const Vector &other) : size_(other.size_), capacity_(other.capacity_) {
+    if (capacity_ > 0) {
+      data_ = static_cast<T *>(::operator new(capacity_ * sizeof(T)));
+      for (size_t i = 0; i < size_; i++) {
+        new (&data_[i]) T(other.data_[i]);
+      }
     }
-    Vector(Vector &&other) noexcept :
-        m_size(other.m_size), m_capacity(other.m_capacity),
-        m_data(other.m_data) {
-        other.m_size = 0;
-        other.m_capacity = 0;
-        other.m_data = nullptr;
+  }
+  Vector(Vector &&other) noexcept
+      : size_(other.size_), capacity_(other.capacity_), data_(other.data_) {
+    other.size_ = 0;
+    other.capacity_ = 0;
+    other.data_ = nullptr;
+  }
+  Vector(std::initializer_list<T> init)
+      : size_(init.size()), capacity_(init.size()) {
+    if (capacity_ > 0) {
+      data_ = static_cast<T *>(::operator new(capacity_ * sizeof(T)));
+      std::uninitialized_copy(init.begin(), init.end(), data_);
     }
-    Vector(std::initializer_list<T> init) :
-        m_size(init.size()), m_capacity(init.size()) {
-        if (m_capacity > 0) {
-            m_data = static_cast<T *>(::operator new(m_capacity * sizeof(T)));
-            size_t i = 0;
-            for (auto &val : init) { new (&m_data[i++]) T(val); }
-        }
+  }
+  ~Vector() {
+    for (size_t i = 0; i < size_; i++) {
+      data_[i].~T();
     }
-    ~Vector() {
-        for (size_t i = 0; i < m_size; i++) { m_data[i].~T(); }
-        ::operator delete(m_data);
-    }
+    ::operator delete(data_);
+  }
 
-    Vector &operator=(const Vector &other) {
-        if (this == &other) return *this;
-        clear();
-        m_size = other.m_size;
-        m_capacity = other.m_capacity;
-        m_data = nullptr;
-        if (m_capacity > 0) {
-            m_data = static_cast<T *>(::operator new(m_capacity * sizeof(T)));
-            for (size_t i = 0; i < m_size; i++) {
-                new (&m_data[i]) T(other.m_data[i]);
-            }
-        }
-        return *this;
+  auto operator=(const Vector &other) -> Vector & {
+    if (this == &other) {
+      return *this;
     }
-    Vector &operator=(Vector &&other) noexcept {
-        if (this == &other) return *this;
-        clear();
-        m_size = other.m_size;
-        m_capacity = other.m_capacity;
-        m_data = other.m_data;
-        other.m_size = 0;
-        other.m_capacity = 0;
-        other.m_data = nullptr;
-        return *this;
+    clear();
+    size_ = other.size_;
+    capacity_ = other.capacity_;
+    data_ = nullptr;
+    if (capacity_ > 0) {
+      data_ = static_cast<T *>(::operator new(capacity_ * sizeof(T)));
+      for (size_t i = 0; i < size_; i++) {
+        new (&data_[i]) T(other.data_[i]);
+      }
     }
-    Vector &operator=(std::initializer_list<T> init) {
-        clear();
-        m_size = init.size();
-        m_capacity = init.size();
-        m_data = nullptr;
-        if (m_capacity > 0) {
-            m_data = static_cast<T *>(::operator new(m_capacity * sizeof(T)));
-            size_t i = 0;
-            for (auto &val : init) { new (&m_data[i++]) T(val); }
-        }
-        return *this;
+    return *this;
+  }
+  auto operator=(Vector &&other) noexcept -> Vector & {
+    if (this == &other) {
+      return *this;
     }
+    clear();
+    size_ = other.size_;
+    capacity_ = other.capacity_;
+    data_ = other.data_;
+    other.size_ = 0;
+    other.capacity_ = 0;
+    other.data_ = nullptr;
+    return *this;
+  }
+  auto operator=(std::initializer_list<T> init) -> Vector & {
+    clear();
+    size_ = init.size();
+    capacity_ = init.size();
+    data_ = nullptr;
+    if (capacity_ > 0) {
+      data_ = static_cast<T *>(::operator new(capacity_ * sizeof(T)));
+      std::uninitialized_copy(init.begin(), init.end(), data_);
+    }
+    return *this;
+  }
 
-    T &operator[](size_t pos) { return m_data[pos]; }
-    const T &operator[](size_t pos) const { return m_data[pos]; }
-    T &at(size_t pos) {
-        if (pos >= m_size)
-            throw std::out_of_range("Vector::at index out of range");
-        return m_data[pos];
+  auto operator[](size_t pos) -> T & { return data_[pos]; }
+  auto operator[](size_t pos) const -> const T & { return data_[pos]; }
+  auto at(size_t pos) -> T & {
+    if (pos >= size_) {
+      throw std::out_of_range("Vector::at index out of range");
     }
-    const T &at(size_t pos) const {
-        if (pos >= m_size)
-            throw std::out_of_range("Vector::at index out of range");
-        return m_data[pos];
+    return data_[pos];
+  }
+  auto at(size_t pos) const -> const T & {
+    if (pos >= size_) {
+      throw std::out_of_range("Vector::at index out of range");
     }
+    return data_[pos];
+  }
 
-    /// INFO: clear 清空 m_data 但不清空 m_capacity
-    void clear() {
-        for (size_t i = 0; i < m_size; i++) { m_data[i].~T(); }
-        m_size = 0;
+  /// INFO: clear 清空 m_data 但不清空 m_capacity
+  void clear() {
+    for (size_t i = 0; i < size_; i++) {
+      data_[i].~T();
     }
+    size_ = 0;
+  }
 
-    /// INFO: 出于保持简洁的原因，采用万能引用的写法而非两个重载的写法
-    template <typename U>
-    void push_back(U &&val) {
-        if (m_size == m_capacity) {
-            size_t new_cap = (m_capacity == 0 ? 1 : m_capacity * GROWTH_FACTOR);
-            reserve(new_cap);
-        }
-        new (&m_data[m_size++]) T(std::forward<U>(val));
+  /// INFO: 出于保持简洁的原因，采用万能引用的写法而非两个重载的写法
+  template <typename U>
+  void pushBack(U &&val) {
+    if (size_ == capacity_) {
+      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+      reserve(new_cap);
     }
-    template <typename... Args>
-    T &emplace_back(Args &&...args) {
-        if (m_size == m_capacity) {
-            size_t new_cap = (m_capacity == 0 ? 1 : m_capacity * GROWTH_FACTOR);
-            reserve(new_cap);
-        }
-        new (&m_data[m_size]) T(std::forward<Args>(args)...);
-        return m_data[m_size++];
+    new (&data_[size_++]) T(std::forward<U>(val));
+  }
+  template <typename... Args>
+  auto emplaceBack(Args &&...args) -> T & {
+    if (size_ == capacity_) {
+      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+      reserve(new_cap);
     }
+    new (&data_[size_]) T(std::forward<Args>(args)...);
+    return data_[size_++];
+  }
 
-    /// INFO: 以下采取了两种方法：
-    /// 1. 对于插入单个元素，末尾使用 placement new，中间使用移动赋值
-    /// 2. 对于插入多个元素，统一新地址 placement new，旧地址析构
-    template <typename U>
-    T *insert(T *loc_ptr, U &&val) {
-        size_t pos = loc_ptr - m_data;
-        if (pos > m_size)
-            throw std::out_of_range("Vector::insert index out of range");
-        if (m_size == m_capacity) {
-            size_t new_cap = (m_capacity == 0 ? 1 : m_capacity * GROWTH_FACTOR);
-            reserve(new_cap);
-        }
-        if (pos < m_size) {
-            new (&m_data[m_size]) T(std::move(m_data[m_size - 1]));
-            for (size_t i = m_size - 1; i > pos; i--) {
-                m_data[i] = std::move(m_data[i - 1]);
-            }
-        }
-        m_data[pos] = T(std::forward<U>(val));
-        m_size++;
-        return m_data + pos;
+  /// INFO: 以下采取了两种方法：
+  /// 1. 对于插入单个元素，末尾使用 placement new，中间使用移动赋值
+  /// 2. 对于插入多个元素，统一新地址 placement new，旧地址析构
+  template <typename U>
+  auto insert(T *loc_ptr, U &&val) -> T * {
+    size_t pos = loc_ptr - data_;
+    if (pos > size_) {
+      throw std::out_of_range("Vector::insert index out of range");
     }
-    template <typename U>
-    T *insert(T *loc_ptr, size_t count, U &&val) {
-        size_t pos = loc_ptr - m_data;
-        if (pos > m_size)
-            throw std::out_of_range("Vector::insert index out of range");
-        if (m_size + count > m_capacity) {
-            size_t geometric_growth_cap =
-                (m_capacity == 0 ? 1 : m_capacity * GROWTH_FACTOR);
-            reserve(mystd::max(geometric_growth_cap, m_size + count));
-        }
-        if (pos < m_size) {
-            for (size_t i = m_size; i > pos; i--) {
-                new (&m_data[i + count - 1]) T(std::move(m_data[i - 1]));
-                m_data[i - 1].~T();
-            }
-        }
-        for (size_t i = pos; i < pos + count; i++) { new (&m_data[i]) T(val); }
-        m_size += count;
-        return m_data + pos;
+    if (size_ == capacity_) {
+      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+      reserve(new_cap);
     }
-    T *insert(T *loc_ptr, std::initializer_list<T> init) {
-        size_t pos = loc_ptr - m_data;
-        if (pos > m_size)
-            throw std::out_of_range("Vector::insert index out of range");
-        size_t count = init.size();
-        if (m_size + count > m_capacity) {
-            size_t geometric_growth_cap =
-                (m_capacity == 0 ? 1 : m_capacity * GROWTH_FACTOR);
-            reserve(mystd::max(geometric_growth_cap, m_size + count));
-        }
-        if (pos < m_size) {
-            for (size_t i = m_size; i > pos; i--) {
-                new (&m_data[i + count - 1]) T(std::move(m_data[i - 1]));
-                m_data[i - 1].~T();
-            }
-        }
-        size_t i = pos;
-        for (auto &val : init) { new (&m_data[i++]) T(val); }
-        m_size += count;
-        return m_data + pos;
+    if (pos < size_) {
+      new (&data_[size_]) T(std::move(data_[size_ - 1]));
+      for (size_t i = size_ - 1; i > pos; i--) {
+        data_[i] = std::move(data_[i - 1]);
+      }
     }
-    template <typename... Args>
-    T *emplace(T *loc_ptr, Args &&...args) {
-        size_t pos = loc_ptr - m_data;
-        if (pos > m_size)
-            throw std::out_of_range("Vector::emplace index out of range");
-        if (m_size == m_capacity) {
-            size_t new_cap = (m_capacity == 0 ? 1 : m_capacity * GROWTH_FACTOR);
-            reserve(new_cap);
-        }
-        if (pos < m_size) {
-            new (&m_data[m_size]) T(std::move(m_data[m_size - 1]));
-            for (size_t i = m_size - 1; i > pos; i--) {
-                m_data[i] = std::move(m_data[i - 1]);
-            }
-        }
-        m_data[pos] = T(std::forward<Args>(args)...);
-        m_size++;
-        return m_data + pos;
+    data_[pos] = T(std::forward<U>(val));
+    size_++;
+    return data_ + pos;
+  }
+  template <typename U>
+  auto insert(T *loc_ptr, size_t count, U &&val) -> T * {
+    size_t pos = loc_ptr - data_;
+    if (pos > size_) {
+      throw std::out_of_range("Vector::insert index out of range");
     }
-    T *erase(T *loc_ptr) {
-        size_t pos = loc_ptr - m_data;
-        if (pos >= m_size)
-            throw std::out_of_range("Vector::erase index out of range");
-        for (size_t i = pos; i < m_size - 1; i++) {
-            m_data[i] = std::move(m_data[i + 1]);
-        }
-        m_data[--m_size].~T();
-        return m_data + pos;
+    if (size_ + count > capacity_) {
+      size_t geometric_growth_cap =
+          (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+      reserve(mystd::max(geometric_growth_cap, size_ + count));
     }
+    if (pos < size_) {
+      for (size_t i = size_; i > pos; i--) {
+        new (&data_[i + count - 1]) T(std::move(data_[i - 1]));
+        data_[i - 1].~T();
+      }
+    }
+    for (size_t i = pos; i < pos + count; i++) {
+      new (&data_[i]) T(val);
+    }
+    size_ += count;
+    return data_ + pos;
+  }
+  auto insert(T *loc_ptr, std::initializer_list<T> init) -> T * {
+    size_t pos = loc_ptr - data_;
+    if (pos > size_) {
+      throw std::out_of_range("Vector::insert index out of range");
+    }
+    size_t count = init.size();
+    if (size_ + count > capacity_) {
+      size_t geometric_growth_cap =
+          (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+      reserve(mystd::max(geometric_growth_cap, size_ + count));
+    }
+    if (pos < size_) {
+      for (size_t i = size_; i > pos; i--) {
+        new (&data_[i + count - 1]) T(std::move(data_[i - 1]));
+        data_[i - 1].~T();
+      }
+    }
+    std::uninitialized_copy(init.begin(), init.end(), data_ + pos);
+    size_ += count;
+    return data_ + pos;
+  }
+  template <typename... Args>
+  auto emplace(T *loc_ptr, Args &&...args) -> T * {
+    size_t pos = loc_ptr - data_;
+    if (pos > size_) {
+      throw std::out_of_range("Vector::emplace index out of range");
+    }
+    if (size_ == capacity_) {
+      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+      reserve(new_cap);
+    }
+    if (pos < size_) {
+      new (&data_[size_]) T(std::move(data_[size_ - 1]));
+      for (size_t i = size_ - 1; i > pos; i--) {
+        data_[i] = std::move(data_[i - 1]);
+      }
+    }
+    data_[pos] = T(std::forward<Args>(args)...);
+    size_++;
+    return data_ + pos;
+  }
+  auto erase(T *loc_ptr) -> T * {
+    size_t pos = loc_ptr - data_;
+    if (pos >= size_) {
+      throw std::out_of_range("Vector::erase index out of range");
+    }
+    for (size_t i = pos; i < size_ - 1; i++) {
+      data_[i] = std::move(data_[i + 1]);
+    }
+    data_[--size_].~T();
+    return data_ + pos;
+  }
 
-    void pop_back() {
-        if (m_size == 0)
-            throw std::out_of_range("Vector::pop_back called on empty vector");
-        m_data[--m_size].~T();
+  void popBack() {
+    if (size_ == 0) {
+      throw std::out_of_range("Vector::pop_back called on empty vector");
     }
+    data_[--size_].~T();
+  }
 
-    void swap(Vector &ano) noexcept {
-        mystd::swap(this->m_size, ano.m_size);
-        mystd::swap(this->m_capacity, ano.m_capacity);
-        mystd::swap(this->m_data, ano.m_data);
-    }
+  void swap(Vector &ano) noexcept {
+    mystd::swap(this->size_, ano.size_);
+    mystd::swap(this->capacity_, ano.capacity_);
+    mystd::swap(this->data_, ano.data_);
+  }
 
-    T &front() {
-        if (m_size == 0)
-            throw std::out_of_range("Vector::front called on empty vector");
-        return m_data[0];
+  auto front() -> T & {
+    if (size_ == 0) {
+      throw std::out_of_range("Vector::front called on empty vector");
     }
-    const T &front() const {
-        if (m_size == 0)
-            throw std::out_of_range("Vector::front called on empty vector");
-        return m_data[0];
+    return data_[0];
+  }
+  auto front() const -> const T & {
+    if (size_ == 0) {
+      throw std::out_of_range("Vector::front called on empty vector");
     }
-    T &back() {
-        if (m_size == 0)
-            throw std::out_of_range("Vector::back called on empty vector");
-        return m_data[m_size - 1];
+    return data_[0];
+  }
+  auto back() -> T & {
+    if (size_ == 0) {
+      throw std::out_of_range("Vector::back called on empty vector");
     }
-    const T &back() const {
-        if (m_size == 0)
-            throw std::out_of_range("Vector::back called on empty vector");
-        return m_data[m_size - 1];
+    return data_[size_ - 1];
+  }
+  auto back() const -> const T & {
+    if (size_ == 0) {
+      throw std::out_of_range("Vector::back called on empty vector");
     }
-    T *begin() { return m_data; }
-    const T *cbegin() const { return m_data; }
-    T *end() { return m_data + m_size; }
-    const T *cend() const { return m_data + m_size; }
+    return data_[size_ - 1];
+  }
+  auto begin() -> T * { return data_; }
+  auto cbegin() const -> const T * { return data_; }
+  auto end() -> T * { return data_ + size_; }
+  auto cend() const -> const T * { return data_ + size_; }
 
-    bool empty() const noexcept { return m_size == 0; }
-    size_t size() const noexcept { return m_size; }
-    size_t capacity() const noexcept { return m_capacity; }
-    void reserve(size_t new_cap) {
-        if (new_cap <= m_capacity) return;
-        T *new_data = static_cast<T *>(::operator new(new_cap * sizeof(T)));
-        for (size_t i = 0; i < m_size; i++) {
-            new (&new_data[i]) T(std::move(m_data[i]));
-            m_data[i].~T();
-        }
-        ::operator delete(m_data);
-        m_data = new_data;
-        m_capacity = new_cap;
+  [[nodiscard]] auto empty() const noexcept -> bool { return size_ == 0; }
+  [[nodiscard]] auto size() const noexcept -> size_t { return size_; }
+  [[nodiscard]] auto capacity() const noexcept -> size_t { return capacity_; }
+  void reserve(size_t new_cap) {
+    if (new_cap <= capacity_) {
+      return;
     }
-    void resize(size_t new_size) {
-        if (new_size > m_size) {
-            reserve(new_size);
-            for (size_t i = m_size; i < new_size; i++) { new (&m_data[i]) T(); }
-        } else if (new_size < m_size) {
-            for (size_t i = new_size; i < m_size; i++) { m_data[i].~T(); }
-        }
-        m_size = new_size;
+    T *new_data = static_cast<T *>(::operator new(new_cap * sizeof(T)));
+    for (size_t i = 0; i < size_; i++) {
+      new (&new_data[i]) T(std::move(data_[i]));
+      data_[i].~T();
     }
-    void shrink_to_fit() {
-        if (m_size == m_capacity) return;
-        if (m_size == 0) {
-            clear();
-            m_data = nullptr;
-            m_capacity = 0;
-            return;
-        }
-        T *new_data = static_cast<T *>(::operator new(m_size * sizeof(T)));
-        for (size_t i = 0; i < m_size; i++) {
-            new (&new_data[i]) T(std::move(m_data[i]));
-            m_data[i].~T();
-        }
-        ::operator delete(m_data);
-        m_data = new_data;
-        m_capacity = m_size;
+    ::operator delete(data_);
+    data_ = new_data;
+    capacity_ = new_cap;
+  }
+  void resize(size_t new_size) {
+    if (new_size > size_) {
+      reserve(new_size);
+      for (size_t i = size_; i < new_size; i++) {
+        new (&data_[i]) T();
+      }
+    } else if (new_size < size_) {
+      for (size_t i = new_size; i < size_; i++) {
+        data_[i].~T();
+      }
     }
+    size_ = new_size;
+  }
+  void shrinkToFit() {
+    if (size_ == capacity_) {
+      return;
+    }
+    if (size_ == 0) {
+      clear();
+      data_ = nullptr;
+      capacity_ = 0;
+      return;
+    }
+    T *new_data = static_cast<T *>(::operator new(size_ * sizeof(T)));
+    for (size_t i = 0; i < size_; i++) {
+      new (&new_data[i]) T(std::move(data_[i]));
+      data_[i].~T();
+    }
+    ::operator delete(data_);
+    data_ = new_data;
+    capacity_ = size_;
+  }
 
-    bool operator==(const Vector &ano) const {
-        if (m_size != ano.m_size) return false;
-        if constexpr (std::is_trivial_v<T>) {
-            return std::memcmp(m_data, ano.m_data, m_size * sizeof(T)) == 0;
-        } else {
-            for (size_t i = 0; i < m_size; i++) {
-                if (!(m_data[i] == ano.m_data[i])) return false;
-            }
-            return true;
-        }
+  auto operator==(const Vector &ano) const -> bool {
+    if (size_ != ano.size_) {
+      return false;
     }
-    bool operator!=(const Vector &ano) const { return !(*this == ano); }
+    if constexpr (std::is_trivial_v<T>) {
+      return std::memcmp(data_, ano.data_, size_ * sizeof(T)) == 0;
+    } else {
+      for (size_t i = 0; i < size_; i++) {
+        if (!(data_[i] == ano.data_[i])) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+  auto operator!=(const Vector &ano) const -> bool { return !(*this == ano); }
 };
-} // namespace mystd::vector
+}  // namespace mystd::vector
 
 #endif
