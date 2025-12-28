@@ -36,7 +36,8 @@ int main(int argc, char *argv[]) {
       {"FenwickTree", test_FenwickTree},
       {"Vector", test_Vector},
       {"BinaryHeap", test_BinaryHeap},
-      {"Stack", test_Stack}
+      {"Stack", test_Stack},
+      {"Set", test_Set}
       // 新模块加到这里
   };
 

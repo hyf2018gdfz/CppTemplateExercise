@@ -60,6 +60,49 @@ private:
   }
 
 public:
+  class Iterator {
+    friend class LinkList;
+
+  private:
+    Node *cur_;
+
+  public:
+    explicit Iterator(Node *cur = nullptr) : cur_(cur) {}
+    auto operator*() -> T & { return cur_->val_; }
+    auto operator*() const -> const T & { return cur_->val_; }
+    auto operator->() -> T * { return &(cur_->val_); }
+    auto operator->() const -> const T * { return &(cur_->val_); }
+
+    auto operator++() -> Iterator & {
+      cur_ = cur_->nxt_;
+      return *this;
+    }  // 前置++
+    auto operator++(int) -> Iterator {
+      Iterator temp(cur_);
+      cur_ = cur_->nxt_;
+      return temp;
+    }  // 后置++
+    auto operator--() -> Iterator & {
+      cur_ = cur_->pre_;
+      return *this;
+    }  // 前置--
+    auto operator--(int) -> Iterator {
+      Iterator temp(cur_);
+      cur_ = cur_->pre_;
+      return temp;
+    }  // 后置--
+
+    auto operator==(const Iterator &other) const -> bool {
+      return cur_ == other.cur_;
+    }
+    auto operator!=(const Iterator &other) const -> bool {
+      return cur_ != other.cur_;
+    }
+  };
+
+  auto begin() -> Iterator { return Iterator(head_); }
+  auto end() -> Iterator { return Iterator(); }
+
   [[nodiscard]] auto empty() const noexcept -> bool { return len_ == 0; }
   [[nodiscard]] auto size() const noexcept -> size_t { return len_; }
   [[nodiscard]] auto ssize() const noexcept -> ptrdiff_t {
@@ -71,7 +114,7 @@ public:
   LinkList(const LinkList &other) : head_(nullptr), tail_(nullptr) {
     Node *cur = other.head_;
     while (cur != nullptr) {
-      push_back(cur->val_);
+      pushBack(cur->val_);
       cur = cur->nxt_;
     }
   }
@@ -135,28 +178,30 @@ public:
   }
 
   template <typename U>
-  void pushBack(U &&val) {
+  auto pushBack(U &&val) -> Iterator {
     Node *new_node = new Node(std::forward<U>(val));
     len_++;
     if (head_ == nullptr) {
       head_ = tail_ = new_node;
-      return;
+      return Iterator(new_node);
     }
     tail_->nxt_ = new_node;
     new_node->pre_ = tail_;
     tail_ = new_node;
+    return Iterator(new_node);
   }
   template <typename U>
-  void pushFront(U &&val) {
+  auto pushFront(U &&val) -> Iterator {
     Node *new_node = new Node(std::forward<U>(val));
     len_++;
     if (head_ == nullptr) {
       head_ = tail_ = new_node;
-      return;
+      return Iterator(new_node);
     }
     head_->pre_ = new_node;
     new_node->nxt_ = head_;
     head_ = new_node;
+    return Iterator(new_node);
   }
 
   void popBack() {
@@ -209,7 +254,7 @@ public:
   }
 
   template <typename U>
-  void insert(size_t ind, U &&val) {
+  auto insert(size_t ind, U &&val) -> Iterator {
     if (ind > len_) {
       throw std::out_of_range("LinkList::insert index out of range");
     }
@@ -227,6 +272,26 @@ public:
     cur->pre_->nxt_ = new_node;
     cur->pre_ = new_node;
     len_++;
+    return Iterator(new_node);
+  }
+
+  template <typename U>
+  auto insert(Iterator iter, U &&val) -> Iterator {
+    if (iter == begin()) {
+      return pushFront(std::forward<U>(val));
+    }
+    if (iter == end()) {
+      return pushBack(std::forward<U>(val));
+    }
+
+    Node *cur = iter.cur_;
+    Node *new_node = new Node(std::forward<U>(val));
+    new_node->pre_ = cur->pre_;
+    new_node->nxt_ = cur;
+    cur->pre_->nxt_ = new_node;
+    cur->pre_ = new_node;
+    len_++;
+    return Iterator(new_node);
   }
 
   auto find(const T &val) const -> ptrdiff_t {
@@ -242,6 +307,7 @@ public:
     return -1;
   }
 
+  /// DEBUG: 左移运算符重载仅用于调试
   friend auto operator<<(std::ostream &oss,
                          const LinkList &lst) -> std::ostream & {
     oss << "[";

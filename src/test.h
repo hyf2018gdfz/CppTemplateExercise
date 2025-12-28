@@ -18,7 +18,7 @@ struct IsEqualityComparable<
     : std::true_type {};
 
 template <typename T, typename U>
-constexpr bool is_equality_comparable_v = IsEqualityComparable<T, U>::value;
+constexpr bool IS_EQUALITY_COMPARABLE_V = IsEqualityComparable<T, U>::value;
 
 template <typename T, typename = void>
 struct IsStreamable : std::false_type {};
@@ -29,7 +29,7 @@ struct IsStreamable<T, std::void_t<decltype(std::declval<std::ostream &>()
     : std::true_type {};
 
 template <typename T>
-constexpr bool is_streamable_v = IsStreamable<T>::value;
+constexpr bool IS_STREAMABLE_V = IsStreamable<T>::value;
 
 struct TestInfo {
   const char *file_name_;
@@ -41,7 +41,7 @@ template <typename T, typename U>
 void checkEqImpl(const T &expected, const U &actual, const TestInfo &info) {
   bool equal = false;
 
-  if constexpr (is_equality_comparable_v<T, U>) {
+  if constexpr (IS_EQUALITY_COMPARABLE_V<T, U>) {
     equal = (expected == actual);
   } else {
     // 没法比较，直接比较地址（或强制失败）
@@ -52,14 +52,14 @@ void checkEqImpl(const T &expected, const U &actual, const TestInfo &info) {
     std::cerr << "[FAIL] " << info.func_name_ << " (" << info.file_name_ << ":"
               << info.line_number_ << "): expected=";
 
-    if constexpr (is_streamable_v<T>) {
+    if constexpr (IS_STREAMABLE_V<T>) {
       std::cerr << expected;
     } else {
       std::cerr << "<unprintable@" << (const void *)&expected << ">";
     }
 
     std::cerr << " got=";
-    if constexpr (is_streamable_v<U>) {
+    if constexpr (IS_STREAMABLE_V<U>) {
       std::cerr << actual;
     } else {
       std::cerr << "<unprintable@" << (const void *)&actual << ">";

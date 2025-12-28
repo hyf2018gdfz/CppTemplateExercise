@@ -72,7 +72,7 @@ public:
       pushUp(ind >> i);
     }
   }
-  // 区间为闭区间 [L, R]，但内部实现的时候使用半开区间 [L, R+1)，下同
+  // 区间为闭区间 [L, R]，但内部实现的时候使用半开区间 [L, R+1)
   void apply(int left_bound, int right_bound, F func) {
     if (left_bound < 0 || right_bound >= arr_size_ ||
         left_bound > right_bound) {
@@ -119,6 +119,7 @@ public:
     }
     return tree_[ind];
   }
+  // 区间为闭区间 [L, R]，但内部实现的时候使用半开区间 [L, R+1)
   auto query(int left_bound, int right_bound) -> T {
     if (left_bound < 0 || right_bound >= arr_size_ ||
         left_bound > right_bound) {

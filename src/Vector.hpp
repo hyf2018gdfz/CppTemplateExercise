@@ -20,7 +20,7 @@ private:
   size_t capacity_ = 0;
   T *data_ = nullptr;
 
-  static constexpr size_t growth_factor = 2;
+  static constexpr size_t GROWTH_FACTOR = 2;
 
 public:
   Vector() noexcept = default;
@@ -136,7 +136,7 @@ public:
   template <typename U>
   void pushBack(U &&val) {
     if (size_ == capacity_) {
-      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * GROWTH_FACTOR);
       reserve(new_cap);
     }
     new (&data_[size_++]) T(std::forward<U>(val));
@@ -144,7 +144,7 @@ public:
   template <typename... Args>
   auto emplaceBack(Args &&...args) -> T & {
     if (size_ == capacity_) {
-      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * GROWTH_FACTOR);
       reserve(new_cap);
     }
     new (&data_[size_]) T(std::forward<Args>(args)...);
@@ -161,7 +161,7 @@ public:
       throw std::out_of_range("Vector::insert index out of range");
     }
     if (size_ == capacity_) {
-      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * GROWTH_FACTOR);
       reserve(new_cap);
     }
     if (ind < size_) {
@@ -182,7 +182,7 @@ public:
     }
     if (size_ + count > capacity_) {
       size_t geometric_growth_cap =
-          (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+          (capacity_ == 0 ? 1 : capacity_ * GROWTH_FACTOR);
       reserve(mystd::max(geometric_growth_cap, size_ + count));
     }
     if (ind < size_) {
@@ -205,7 +205,7 @@ public:
     size_t count = init.size();
     if (size_ + count > capacity_) {
       size_t geometric_growth_cap =
-          (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+          (capacity_ == 0 ? 1 : capacity_ * GROWTH_FACTOR);
       reserve(mystd::max(geometric_growth_cap, size_ + count));
     }
     if (ind < size_) {
@@ -225,7 +225,7 @@ public:
       throw std::out_of_range("Vector::emplace index out of range");
     }
     if (size_ == capacity_) {
-      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * growth_factor);
+      size_t new_cap = (capacity_ == 0 ? 1 : capacity_ * GROWTH_FACTOR);
       reserve(new_cap);
     }
     if (ind < size_) {
