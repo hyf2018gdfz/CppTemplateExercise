@@ -8,5 +8,6 @@ void test_FenwickTree();
 void test_Vector();
 void test_BinaryHeap();
 void test_Stack();
+void test_Set();
 
 #endif
