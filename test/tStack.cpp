@@ -14,7 +14,7 @@ void test_Stack() {
   const int num_range = 100000;
   Stack<int> stk({1, 2, 3, 4, 5});
   stack<int> ref({1, 2, 3, 4, 5});
-  for (int t = 0; t < num_range; t++) {
+  for (int t = 0; t < query_times; t++) {
     int opt = gen.uniform_int(0, 4);
     switch (opt) {
       case 0: {

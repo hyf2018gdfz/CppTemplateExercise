@@ -95,7 +95,7 @@ struct RBNode : public RBNodeBase {
 
   template <typename... Args>
   explicit RBNode(Args&&... args)
-      : val_(std::forward<Args>(args)...), RBNodeBase() {}
+      : RBNodeBase(), val_(std::forward<Args>(args)...) {}
 };
 
 // 节点存储的内容是 Value，可以通过 KeyOfValue 提取出比较键值，键值类型为 Key
@@ -109,8 +109,8 @@ public:
   using BasePtr = RBNodeBase*;
   using ConstBasePtr = const RBNodeBase*;
 
-  static const bool LEFT_SON = false;
-  static const bool RIGHT_SON = true;
+  static const bool LEFT_SON = true;
+  static const bool RIGHT_SON = false;
 
 private:
   template <bool IsConst>
@@ -172,11 +172,13 @@ public:
 
   auto insert(const Value& val) -> std::pair<Iterator, bool> {
     auto [parent, whson] = findInsertPos(KeyOfValue()(val));
-    return insertImpl(new Node(val), parent, whson);
+    auto new_node = new Node(val);
+    return insertImpl(new_node, static_cast<NodePtr>(parent), whson);
   }
   auto insert(Value&& val) -> std::pair<Iterator, bool> {
     auto [parent, whson] = findInsertPos(KeyOfValue()(val));
-    return insertImpl(new Node(std::move(val)), parent, whson);
+    auto new_node = new Node(std::move(val));
+    return insertImpl(new_node, static_cast<NodePtr>(parent), whson);
   }
   auto insertUnique(const Value& val) -> std::pair<Iterator, bool> {
     auto [parent, whson] = findInsertPos(KeyOfValue()(val));
@@ -193,7 +195,8 @@ public:
         }
       }
     }
-    return insertImpl(new Node(val), parent, whson);
+    auto new_node = new Node(val);
+    return insertImpl(new_node, static_cast<NodePtr>(parent), whson);
   }
   auto insertUnique(Value&& val) -> std::pair<Iterator, bool> {
     auto [parent, whson] = findInsertPos(KeyOfValue()(val));
@@ -202,22 +205,23 @@ public:
       auto iter = Iterator(parent);
       if (whson == LEFT_SON && parent != leftmost()) {
         --iter;
-        if (!comp_(KeyOfValue()(iter.node_->val_), KeyOfValue()(val))) {
+        if (!comp_(KeyOfValue()(*iter), KeyOfValue()(val))) {
           return {iter, false};
         }
       } else if (whson == RIGHT_SON) {
-        if (!comp_(KeyOfValue()(iter.node_->val_), KeyOfValue()(val))) {
+        if (!comp_(KeyOfValue()(*iter), KeyOfValue()(val))) {
           return {iter, false};
         }
       }
     }
-    return insertImpl(new Node(std::move(val)), parent, whson);
+    auto new_node = new Node(std::move(val));
+    return insertImpl(new_node, static_cast<NodePtr>(parent), whson);
   }
 
   auto erase(Iterator iter) -> Iterator {
     Iterator res = iter;
     ++res;
-    eraseImpl(iter.node_);
+    eraseImpl(static_cast<NodePtr>(iter.node_));
     return res;
   }
   auto eraseUnique(const Key& key) -> size_t {
@@ -225,7 +229,7 @@ public:
     if (iter == end()) {
       return 0;
     }
-    eraseImpl(iter.node_);
+    eraseImpl(static_cast<NodePtr>(iter.node_));
     return 1;
   }
   auto eraseMulti(const Key& key) -> size_t {
@@ -253,9 +257,14 @@ private:
   size_t size_;
   Compare comp_;
 
-  [[nodiscard]] auto root() const -> BasePtr& { return header_->parent_; }
-  [[nodiscard]] auto leftmost() const -> BasePtr& { return header_->left_; }
-  [[nodiscard]] auto rightmost() const -> BasePtr& { return header_->right_; }
+  // clang-format off
+  auto root() -> BasePtr& { return header_->parent_; }
+  [[nodiscard]] auto root() const -> ConstBasePtr { return header_->parent_; }
+  auto leftmost() -> BasePtr& { return header_->left_; }
+  [[nodiscard]] auto leftmost() const -> ConstBasePtr { return header_->left_; }
+  auto rightmost() -> BasePtr& { return header_->right_; }
+  [[nodiscard]] auto rightmost() const -> ConstBasePtr { return header_->right_; }
+  // clang-format on
 
   void initHeader() {
     header_ = new RBNodeBase();
@@ -316,10 +325,10 @@ private:
   }
   void insertFix(NodePtr node) {
     while (node != root() && node->parent_->color_ == NodeColor::RED) {
-      NodePtr parent = node->parent_;
-      NodePtr g_parent = parent->parent_;
+      auto parent = static_cast<NodePtr>(node->parent_);
+      auto g_parent = static_cast<NodePtr>(parent->parent_);
       if (parent == g_parent->left_) {
-        NodePtr uncle = g_parent->right_;
+        auto uncle = static_cast<NodePtr>(g_parent->right_);
         if (uncle && uncle->color_ == NodeColor::RED) {
           uncle->color_ = parent->color_ = NodeColor::BLACK;
           g_parent->color_ = NodeColor::RED;
@@ -327,14 +336,15 @@ private:
         } else {
           if (node == parent->right_) {
             node = parent;
-            rotateLeft(node);
+            rotateLeft(static_cast<BasePtr>(node));
+            parent = static_cast<NodePtr>(node->parent_);
           }
           parent->color_ = NodeColor::BLACK;
           g_parent->color_ = NodeColor::RED;
-          rotateRight(g_parent);
+          rotateRight(static_cast<BasePtr>(g_parent));
         }
       } else {
-        NodePtr uncle = g_parent->left_;
+        auto uncle = static_cast<NodePtr>(g_parent->left_);
         if (uncle && uncle->color_ == NodeColor::RED) {
           uncle->color_ = parent->color_ = NodeColor::BLACK;
           g_parent->color_ = NodeColor::RED;
@@ -342,11 +352,12 @@ private:
         } else {
           if (node == parent->left_) {
             node = parent;
-            rotateRight(node);
+            rotateRight(static_cast<BasePtr>(node));
+            parent = static_cast<NodePtr>(node->parent_);
           }
           parent->color_ = NodeColor::BLACK;
           g_parent->color_ = NodeColor::RED;
-          rotateLeft(g_parent);
+          rotateLeft(static_cast<BasePtr>(g_parent));
         }
       }
     }
@@ -354,33 +365,33 @@ private:
   }
   auto insertImpl(NodePtr node, NodePtr parent,
                   bool whson) -> std::pair<Iterator, bool> {
-    node->parent_ = parent;
+    node->parent_ = static_cast<BasePtr>(parent);
     if (parent == header_) {
-      root() = node;
-      leftmost() = rightmost() = node;
+      root() = static_cast<BasePtr>(node);
+      leftmost() = rightmost() = static_cast<BasePtr>(node);
     } else if (whson == LEFT_SON) {
-      parent->left_ = node;
+      parent->left_ = static_cast<BasePtr>(node);
       if (parent == leftmost()) {
-        leftmost() = node;
+        leftmost() = static_cast<BasePtr>(node);
       }
     } else {
-      parent->right_ = node;
+      parent->right_ = static_cast<BasePtr>(node);
       if (parent == rightmost()) {
-        rightmost() = node;
+        rightmost() = static_cast<BasePtr>(node);
       }
     }
-    size_++;
     insertFix(node);
-    return {Iterator(node), true};
+    size_++;
+    return {Iterator(static_cast<BasePtr>(node)), true};
   }
 
-  void eraseFix(NodePtr node, NodePtr parent) {
+  void eraseFix(BasePtr node, BasePtr parent) {
     // 我们认为 node 现在额外多了一个黑色，目标是消除这个额外的黑色
     // 如果 node 本来是红色，那么直接改为黑色即可
     while (node != root() &&
            (node == nullptr || node->color_ == NodeColor::BLACK)) {
       if (node == parent->left_) {
-        NodePtr bro = parent->right_;
+        BasePtr bro = parent->right_;
         // case 1: 兄弟是红色
         if (bro->color_ == NodeColor::RED) {
           bro->color_ = NodeColor::BLACK;
@@ -414,7 +425,7 @@ private:
           break;
         }
       } else {
-        NodePtr bro = parent->left_;
+        BasePtr bro = parent->left_;
         if (bro->color_ == NodeColor::RED) {
           bro->color_ = NodeColor::BLACK;
           parent->color_ = NodeColor::RED;
@@ -442,39 +453,41 @@ private:
         }
       }
     }
-    if (node) {
+    if (node != nullptr) {
       node->color_ = NodeColor::BLACK;
     }
   }
   void eraseImpl(NodePtr node) {
     NodePtr fin_erase = node;  // 最终删除的节点
     if (node->left_ && node->right_) {
-      fin_erase = Node::suffix(node);
+      fin_erase =
+          static_cast<NodePtr>(RBNodeBase::suffix(static_cast<BasePtr>(node)));
     }
     // 此时 fin_erase 只有一个孩子
-    NodePtr son = fin_erase->left_ ? fin_erase->left_ : fin_erase->right_;
+    NodePtr son = fin_erase->left_ ? static_cast<NodePtr>(fin_erase->left_)
+                                   : static_cast<NodePtr>(fin_erase->right_);
 
     if (son) {
       son->parent_ = fin_erase->parent_;
     }
     if (fin_erase == root()) {
-      root() = son;
+      root() = static_cast<BasePtr>(son);
     } else if (fin_erase == fin_erase->parent_->left_) {
-      fin_erase->parent_->left_ = son;
+      fin_erase->parent_->left_ = static_cast<BasePtr>(son);
     } else {
-      fin_erase->parent_->right_ = son;
+      fin_erase->parent_->right_ = static_cast<BasePtr>(son);
     }
 
     if (fin_erase == leftmost()) {
-      leftmost() = fin_erase->right_ ? Node::minimum(fin_erase->right_)
+      leftmost() = fin_erase->right_ ? RBNodeBase::minimum(fin_erase->right_)
                                      : fin_erase->parent_;
     }
     if (fin_erase == rightmost()) {
-      rightmost() = fin_erase->left_ ? Node::maximum(fin_erase->left_)
+      rightmost() = fin_erase->left_ ? RBNodeBase::maximum(fin_erase->left_)
                                      : fin_erase->parent_;
     }
     if (fin_erase->color_ == NodeColor::BLACK) {
-      eraseFix(son, fin_erase->parent_);
+      eraseFix(static_cast<BasePtr>(son), fin_erase->parent_);
     }
     if (fin_erase != node) {
       node->val_ = std::move(fin_erase->val_);
@@ -484,22 +497,22 @@ private:
   }
 
   void clearImpl() {
-    NodePtr node = root();
-    while (node) {
-      if (node->left_) {
+    BasePtr node = root();
+    while (node != nullptr) {
+      if (node->left_ != nullptr) {
         node = node->left_;
-      } else if (node->right_) {
+      } else if (node->right_ != nullptr) {
         node = node->right_;
       } else {
-        NodePtr parent = node->parent_;
-        if (parent && parent != header_) {
+        BasePtr parent = node->parent_;
+        if (parent != nullptr && parent != header_) {
           if (parent->left_ == node) {
             parent->left_ = nullptr;
           } else {
             parent->right_ = nullptr;
           }
         }
-        delete node;
+        delete static_cast<NodePtr>(node);
         if (parent == header_) {
           node = nullptr;
         } else {
@@ -516,9 +529,9 @@ private:
     auto node = new Node(static_cast<ConstNodePtr>(src_root)->val_);
     node->color_ = src_root->color_;
     node->parent_ = dst_parent;
-    node->left_ = copyTree(src_root->left_, node);
-    node->right_ = copyTree(src_root->right_, node);
-    return node;
+    node->left_ = copyTree(src_root->left_, static_cast<BasePtr>(node));
+    node->right_ = copyTree(src_root->right_, static_cast<BasePtr>(node));
+    return static_cast<BasePtr>(node);
   }
 
   template <bool IsConst>
@@ -537,6 +550,7 @@ private:
   public:
     explicit IteratorBase(BasePtr node = nullptr) : node_(node) {}
 
+    // 允许 non-const 向 const 赋值
     template <bool B, std::enable_if_t<IsConst && !B, int> = 0>
     IteratorBase(const IteratorBase<B>& other) : node_(other.node_) {}
 
@@ -578,14 +592,17 @@ private:
     auto operator!=(const IteratorBase<B>& other) const -> bool {
       return node_ != other.node_;
     }
+
+    /// WARNING: 仅在 Set.hpp 和 Map.hpp 中使用
+    [[nodiscard]] auto base() const -> BasePtr { return node_; }
   };
 
 public:
-  auto find(const Key& key) -> Iterator {
-    BasePtr node = root();
-    BasePtr ans = header_;
+  auto find(const Key& key) const -> ConstIterator {
+    ConstBasePtr node = root();
+    ConstBasePtr ans = header_;
     while (node != nullptr) {
-      Key knode = KeyOfValue()(static_cast<NodePtr>(node)->val_);
+      Key knode = KeyOfValue()(static_cast<ConstNodePtr>(node)->val_);
       if (comp_(key, knode)) {
         node = node->left_;
       } else {
@@ -594,17 +611,21 @@ public:
       }
     }
     if (ans == header_ ||
-        comp_(KeyOfValue()(static_cast<NodePtr>(ans)->val_), key)) {
+        comp_(KeyOfValue()(static_cast<ConstNodePtr>(ans)->val_), key)) {
       return end();
     }
-    return Iterator(ans);
+    return ConstIterator(const_cast<BasePtr>(ans));
+  }
+  auto find(const Key& key) -> Iterator {
+    ConstIterator citer = static_cast<const RBTree*>(this)->find(key);
+    return Iterator(citer.node_);
   }
 
-  auto lowerBound(const Key& key) -> Iterator {
-    BasePtr node = root();
-    BasePtr ans = header_;
+  auto lowerBound(const Key& key) const -> ConstIterator {
+    ConstBasePtr node = root();
+    ConstBasePtr ans = header_;
     while (node != nullptr) {
-      Key knode = KeyOfValue()(static_cast<NodePtr>(node)->val_);
+      Key knode = KeyOfValue()(static_cast<ConstNodePtr>(node)->val_);
       if (!comp_(knode, key)) {
         ans = node;
         node = node->left_;
@@ -612,13 +633,17 @@ public:
         node = node->right_;
       }
     }
-    return Iterator(ans);
+    return ConstIterator(const_cast<BasePtr>(ans));
   }
-  auto upperBound(const Key& key) -> Iterator {
-    BasePtr node = root();
-    BasePtr ans = header_;
+  auto lowerBound(const Key& key) -> Iterator {
+    ConstIterator citer = static_cast<const RBTree*>(this)->lowerBound(key);
+    return Iterator(citer.node_);
+  }
+  auto upperBound(const Key& key) const -> ConstIterator {
+    ConstBasePtr node = root();
+    ConstBasePtr ans = header_;
     while (node != nullptr) {
-      Key knode = KeyOfValue()(static_cast<NodePtr>(node)->val_);
+      Key knode = KeyOfValue()(static_cast<ConstNodePtr>(node)->val_);
       if (comp_(key, knode)) {
         ans = node;
         node = node->left_;
@@ -626,11 +651,20 @@ public:
         node = node->right_;
       }
     }
-    return Iterator(ans);
+    return ConstIterator(const_cast<BasePtr>(ans));
+  }
+  auto upperBound(const Key& key) -> Iterator {
+    ConstIterator citer = static_cast<const RBTree*>(this)->upperBound(key);
+    return Iterator(citer.node_);
   }
 
-  auto equalRange(const Key& key) -> std::pair<Iterator, Iterator> {
+  auto equalRange(const Key& key) const
+      -> std::pair<ConstIterator, ConstIterator> {
     return {lowerBound(key), upperBound(key)};
+  }
+  auto equalRange(const Key& key) -> std::pair<Iterator, Iterator> {
+    auto [clower, cupper] = static_cast<const RBTree*>(this)->equalRange(key);
+    return {Iterator(clower.node_), Iterator(cupper.node_)};
   }
 
   void swap(RBTree& other) noexcept {

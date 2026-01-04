@@ -3,21 +3,20 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <utility>
 
 #include "Compare.hpp"
 #include "RBTree.hpp"
 
 namespace mystd::set {
 
-template <typename T>
-struct Identity {
-  auto operator()(const T& val) const -> const T& { return val; }
-};
-
 template <typename T, typename Compare = mystd::compare::Less<T>>
 class Set {
 private:
-  using RBTree = mystd::rbtree::RBTree<T, T, Identity<T>, Compare>;
+  struct Identity {
+    auto operator()(const T& val) const -> const T& { return val; }
+  };
+  using RBTree = mystd::rbtree::RBTree<T, T, Identity, Compare>;
   RBTree tree_;
 
 public:
@@ -40,7 +39,7 @@ public:
   // clang-format off
   auto begin() noexcept -> Iterator { return Iterator(tree_.begin()); }
   auto begin() const noexcept -> ConstIterator { return ConstIterator(tree_.begin()); }
-  auto end() -> Iterator { return tree_.end(); }
+  auto end() -> Iterator { return Iterator(tree_.end()); }
   auto end() const noexcept -> ConstIterator { return ConstIterator(tree_.end()); }
   [[nodiscard]] auto size() const noexcept -> size_t { return tree_.size(); }
   [[nodiscard]] auto empty() const noexcept -> bool { return tree_.empty(); }
@@ -55,20 +54,41 @@ public:
     return {Iterator(tmp.first), tmp.second};
   }
 
-  auto erase(Iterator iter) { return tree_.erase(iter); }
+  auto erase(Iterator iter) {
+    typename RBTree::Iterator tmp(iter.base());
+    typename RBTree::Iterator res = tree_.erase(tmp);
+    return Iterator(res);
+  }
   auto erase(const T& val) { return tree_.eraseUnique(val); }
 
-  auto find(const T& val) { return tree_.find(val); }
-  auto lowerBound(const T& val) { return tree_.lowerBound(val); }
-  auto upperBound(const T& val) { return tree_.upperBound(val); }
+  // clang-format off
+  auto find(const T& val) { return Iterator(tree_.find(val)); }
+  auto find(const T& val) const { return ConstIterator(tree_.find(val)); }
+  auto lowerBound(const T& val) { return Iterator(tree_.lowerBound(val)); }
+  auto lowerBound(const T& val) const { return ConstIterator(tree_.lowerBound(val)); }
+  auto upperBound(const T& val) { return Iterator(tree_.upperBound(val)); }
+  auto upperBound(const T& val) const { return ConstIterator(tree_.upperBound(val)); }
+  auto equalRange(const T& val) -> std::pair<Iterator, Iterator> {
+    auto tmp = tree_.equalRange(val);
+    return {Iterator(tmp.first), Iterator(tmp.second)};
+  }
+  auto equalRange(const T& val) const -> std::pair<ConstIterator, ConstIterator> {
+    auto tmp = tree_.equalRange(val);
+    return {ConstIterator(tmp.first), ConstIterator(tmp.second)};
+  }
+  // clang-format on
 
   void clear() { tree_.clear(); }
+  void swap(Set& other) noexcept { tree_.swap(other.tree_); }
 };
 
 template <typename T, typename Compare = mystd::compare::Less<T>>
 class Multiset {
 private:
-  using RBTree = mystd::rbtree::RBTree<T, T, Identity<T>, Compare>;
+  struct Identity {
+    auto operator()(const T& val) const -> const T& { return val; }
+  };
+  using RBTree = mystd::rbtree::RBTree<T, T, Identity, Compare>;
   RBTree tree_;
 
 public:
