@@ -4,23 +4,24 @@
 #include <utility>
 
 namespace mystd {
-
+// NOLINTBEGIN(readability-identifier-naming, readability-identifier-length)
 template <typename T>
 void swap(T &a, T &b) noexcept {
-    T temp = std::move(a);
-    a = std::move(b);
-    b = std::move(temp);
+  T temp = std::move(a);
+  a = std::move(b);
+  b = std::move(temp);
 }
 
 template <typename T>
-T max(const T &a, const T &b) noexcept {
-    return (a < b ? b : a);
+auto max(const T &a, const T &b) noexcept -> T {
+  return (a < b ? b : a);
 }
 
 template <typename T>
-T min(const T &a, const T &b) noexcept {
-    return (a < b ? a : b);
+auto min(const T &a, const T &b) noexcept -> T {
+  return (a < b ? a : b);
 }
-} // namespace mystd
+// NOLINTEND(readability-identifier-naming, readability-identifier-length)
+}  // namespace mystd
 
-#endif // COMMON_H
+#endif  // COMMON_H

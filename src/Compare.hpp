@@ -3,14 +3,16 @@
 
 namespace mystd::compare {
 
-template <typename T>
-struct Less {
-    constexpr bool operator()(const T &a, const T &b) const { return a < b; }
+template <typename T> struct Less {
+  constexpr auto operator()(const T &param_a, const T &param_b) const -> bool {
+    return param_a < param_b;
+  }
 };
 
-template <typename T>
-struct Greater {
-    constexpr bool operator()(const T &a, const T &b) const { return a > b; }
+template <typename T> struct Greater {
+  constexpr auto operator()(const T &param_a, const T &param_b) const -> bool {
+    return param_a > param_b;
+  }
 };
 } // namespace mystd::compare
 
