@@ -123,8 +123,9 @@ public:
   explicit RBTree(const Compare& comp = Compare()) : comp_(comp) {
     initHeader();
   }
-  RBTree(const RBTree& other) : size_(other.size_), comp_(other.comp_) {
+  RBTree(const RBTree& other) : comp_(other.comp_) {
     initHeader();
+    size_ = other.size_;
     if (other.root() != nullptr) {
       root() = copyTree(other.root(), header_);
       leftmost() = RBNodeBase::minimum(root());

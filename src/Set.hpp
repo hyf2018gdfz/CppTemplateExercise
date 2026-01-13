@@ -31,7 +31,7 @@ public:
     return *this;
   }
   auto operator=(Set&& other) noexcept -> Set& {
-    tree_ = std::move(other);
+    tree_ = std::move(other.tree_);
     return *this;
   }
   ~Set() = default;
@@ -103,7 +103,7 @@ public:
     return *this;
   }
   auto operator=(Multiset&& other) noexcept -> Multiset& {
-    tree_ = std::move(other);
+    tree_ = std::move(other.tree_);
     return *this;
   }
   ~Multiset() = default;

@@ -1,12 +1,67 @@
 #include <set>
 
+#include "Compare.hpp"
 #include "Set.hpp"
 #include "test.h"
 #include "testcase.h"
 using mystd::set::Multiset;
 using std::multiset;
 
+static void test_construct() {
+  {
+    Multiset<int> mst;
+    CHECK_EQ(0, mst.size());
+    CHECK_EQ(true, mst.empty());
+    CHECK_EQ(mst.begin(), mst.end());
+  }
+  {
+    Multiset<int, mystd::compare::Greater<int>> mst;
+    mst.insert(3);
+    mst.insert(1);
+    mst.insert(2);
+    CHECK_EQ(3, *mst.begin());
+    CHECK_EQ(2, *(++mst.begin()));
+  }
+  {
+    Multiset<int> mst1;
+    mst1.insert(1);
+    mst1.insert(2);
+    Multiset<int> mst2 = mst1;
+    mst1.insert(3);
+    CHECK_EQ(3, mst1.size());
+    CHECK_EQ(2, mst2.size());
+    CHECK_EQ(mst2.end(), mst2.find(3));
+  }
+  {
+    Multiset<int> mst1;
+    mst1.insert(1);
+    mst1.insert(2);
+    Multiset<int> mst2 = std::move(mst1);
+    CHECK_EQ(2, mst2.size());
+    CHECK_EQ(true, mst1.empty());
+  }
+  {
+    Multiset<int> mst1, mst2;
+    mst1.insert(1);
+    mst1.insert(2);
+    mst2 = mst1;
+    mst1.insert(3);
+    CHECK_EQ(3, mst1.size());
+    CHECK_EQ(2, mst2.size());
+    CHECK_EQ(mst2.end(), mst2.find(3));
+  }
+  {
+    Multiset<int> mst1, mst2;
+    mst1.insert(1);
+    mst1.insert(2);
+    mst2 = std::move(mst1);
+    CHECK_EQ(2, mst2.size());
+    CHECK_EQ(true, mst1.empty());
+  }
+}
+
 void test_Multiset() {
+  test_construct();
   RandomGenerator gen;
   const int query_times = 1000000;
   const int num_range = 100;
