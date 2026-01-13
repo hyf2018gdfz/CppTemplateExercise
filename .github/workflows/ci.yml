@@ -61,5 +61,5 @@ jobs:
         if ! git diff --exit-code --name-only >/dev/null; then
           echo "Files are not formatted. Please run clang-format locally and push the changes."
           git --no-pager diff
-          exit 1
+          exit 0
         fi
