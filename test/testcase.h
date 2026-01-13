@@ -9,5 +9,6 @@ void test_Vector();
 void test_BinaryHeap();
 void test_Stack();
 void test_Set();
+void test_Multiset();
 
 #endif

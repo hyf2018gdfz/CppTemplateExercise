@@ -112,17 +112,21 @@ public:
   }
 
   // 生成指定范围的随机整数
-  template <typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
-  auto uniform_int(T min, T max) -> T {
-    std::uniform_int_distribution<T> dist(min, max);
+  template <class A, class B>
+  auto uniform_int(A min, B max) -> std::common_type_t<A, B> {
+    using T = std::common_type_t<A, B>;
+    static_assert(std::is_integral_v<T>);
+    std::uniform_int_distribution<T> dist(static_cast<T>(min),
+                                          static_cast<T>(max));
     return dist(rng_);
   }
 
   // 生成指定范围的随机浮点数
-  template <typename T,
-            std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
-  auto uniform_real(T min, T max) -> T {
-    std::uniform_real_distribution<T> dist(min, max);
+  template <class A, class B>
+  auto uniform_real(A min, B max) -> double {
+    static_assert(std::is_arithmetic_v<A> && std::is_arithmetic_v<B>);
+    std::uniform_real_distribution<double> dist(static_cast<double>(min),
+                                                static_cast<double>(max));
     return dist(rng_);
   }
 

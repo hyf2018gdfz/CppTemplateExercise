@@ -123,8 +123,9 @@ public:
   explicit RBTree(const Compare& comp = Compare()) : comp_(comp) {
     initHeader();
   }
-  RBTree(const RBTree& other) : size_(other.size_), comp_(other.comp_) {
+  RBTree(const RBTree& other) : comp_(other.comp_) {
     initHeader();
+    size_ = other.size_;
     if (other.root() != nullptr) {
       root() = copyTree(other.root(), header_);
       leftmost() = RBNodeBase::minimum(root());
@@ -219,10 +220,27 @@ public:
   }
 
   auto erase(Iterator iter) -> Iterator {
-    Iterator res = iter;
-    ++res;
-    eraseImpl(static_cast<NodePtr>(iter.node_));
-    return res;
+    if (iter == end()) {
+      return end();
+    }
+    const Key k = KeyOfValue()(*iter);
+    NodePtr node = static_cast<NodePtr>(iter.node_);
+    bool has_two_children = (node->left_ != nullptr && node->right_ != nullptr);
+    Iterator precomputed_next = iter;
+    if (!has_two_children) {
+      ++precomputed_next;
+    }
+    eraseImpl(node);
+    if (has_two_children) {
+      const Key new_key = KeyOfValue()(node->val_);
+      if (!comp_(k, new_key) && !comp_(new_key, k)) {
+        return Iterator(static_cast<BasePtr>(node));
+      } else {
+        return Iterator(RBNodeBase::suffix(static_cast<BasePtr>(node)));
+      }
+    } else {
+      return precomputed_next;
+    }
   }
   auto eraseUnique(const Key& key) -> size_t {
     auto iter = find(key);
@@ -233,9 +251,11 @@ public:
     return 1;
   }
   auto eraseMulti(const Key& key) -> size_t {
-    auto [iter, last] = equalRange(key);
+    auto iter = lowerBound(key);
     size_t count = 0;
-    while (iter != last) {
+    while (iter != end() && !comp_(key, KeyOfValue()(*iter)) &&
+           !comp_(KeyOfValue()(*iter), key)) {
+      // assert(iter != end());
       iter = erase(iter);
       count++;
     }
@@ -363,8 +383,8 @@ private:
     }
     root()->color_ = NodeColor::BLACK;
   }
-  auto insertImpl(NodePtr node, NodePtr parent,
-                  bool whson) -> std::pair<Iterator, bool> {
+  auto insertImpl(NodePtr node, NodePtr parent, bool whson)
+      -> std::pair<Iterator, bool> {
     node->parent_ = static_cast<BasePtr>(parent);
     if (parent == header_) {
       root() = static_cast<BasePtr>(node);
