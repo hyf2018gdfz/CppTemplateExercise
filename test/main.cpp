@@ -1,88 +1,59 @@
 #include <bits/stdc++.h>
 
-#include "testcase.h"
+#include <iostream>
+
+#include "test.h"
 
 using namespace std;
 
-using TestFunc = void (*)();
-
-const string RESET = "\033[0m";
-const string RED = "\033[31m";
-const string GREEN = "\033[32m";
-const string CYAN = "\033[36m";
-
-// 运行单个测试的辅助函数
-void run_test(const string &name, TestFunc func, int &passed, int &failed) {
-  cout << CYAN << "==== Running " << name << " ====" << RESET << "\n";
-  auto start = chrono::high_resolution_clock::now();
-  try {
-    func();
-    auto end = chrono::high_resolution_clock::now();
-    chrono::duration<double> diff = end - start;
-    cout << GREEN << "[OK] " << RESET << name << " completed in "
-         << diff.count() << "s\n";
-    passed++;
-  } catch (exception &e) {
-    cerr << RED << "[ERROR] " << RESET << name << " failed: " << e.what()
-         << "\n";
-    failed++;
-  }
-}
-
 int main(int argc, char *argv[]) {
-  map<string, TestFunc> tests = {
-      {"SegmentTree", test_SegmentTree},
-      {"LinkList", test_LinkList},
-      {"FenwickTree", test_FenwickTree},
-      {"Vector", test_Vector},
-      {"BinaryHeap", test_BinaryHeap},
-      {"Stack", test_Stack},
-      {"Set", test_Set},
-      {"Multiset", test_Multiset}
-      // 新模块加到这里
-  };
+  std::vector<std::string> suites;
+  bool list_suites = false;
 
-  vector<string> modules;
+  for (int i = 1; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg.rfind("--suite=", 0) == 0) {
+      std::string list = arg.substr(8);  // comma-separated suite names
+      std::stringstream ss(list);
+      std::string item;
+      while (std::getline(ss, item, ',')) {
+        if (!item.empty()) {
+          suites.push_back(item);
+        }
+      }
+    } else if (arg == "--list-suites") {
+      list_suites = true;
+    } else {
+      std::cerr << "Unknown argument " << arg << "\n";
+      list_suites = true;
+    }
+  }
 
-  for (int i = 1; i < argc; i++) {
-    string arg = argv[i];
-    if (arg.rfind("--module=", 0) == 0) {
-      string list = arg.substr(9);
-      stringstream ss(list);
-      string item;
-      while (getline(ss, item, ',')) {
-        modules.push_back(item);
+  if (list_suites) {
+    auto registered = TestRegistry::instance().getSuites();
+    std::cout << "Registered test suites:\n";
+    for (const auto &suite : registered) {
+      std::cout << "- " << suite << "\n";
+      auto cases = TestRegistry::instance().getCases(suite);
+      for (const auto &c : cases) {
+        std::cout << "    - " << c << "\n";
       }
     }
+    return 0;
   }
 
-  int passed_count = 0;
-  int failed_count = 0;
-
-  if (modules.empty()) {
-    for (auto &p : tests) {
-      run_test(p.first, p.second, passed_count, failed_count);
-    }
+  int failed = 0;
+  if (suites.empty()) {
+    failed = TestRegistry::instance().runAll();
   } else {
-    for (auto &m : modules) {
-      auto it = tests.find(m);
-      if (it == tests.end()) {
-        cerr << "Unknown module: " << m << "\n";
-        continue;
-      }
-      run_test(it->first, it->second, passed_count, failed_count);
-    }
+    failed = TestRegistry::instance().runSuites(suites);
   }
 
-  cout << "\n==== Test Summary ====\n";
-  if (failed_count == 0) {
-    cout << GREEN << "All " << passed_count << " tests passed!" << RESET
-         << "\n";
+  if (failed == 0) {
+    std::cout << "All tests passed.\n";
   } else {
-    cout << GREEN << "Passed: " << passed_count << RESET << "\n";
-    cout << RED << "Failed: " << failed_count << RESET << "\n";
+    std::cout << failed << " test(s) failed.\n";
   }
-  cout << "Total: " << passed_count + failed_count << "\n";
 
-  return failed_count > 0 ? 1 : 0;
+  return failed > 0 ? 1 : 0;
 }

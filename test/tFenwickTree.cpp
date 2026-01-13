@@ -4,7 +4,6 @@
 #include "FenwickTree.hpp"
 #include "common.h"
 #include "test.h"
-#include "testcase.h"
 
 namespace TestFenwickTree {
 const int mod = 1e9 + 7;
@@ -65,3 +64,6 @@ void test_FenwickTree() {
     }
   }
 }
+
+// register tests
+MAKE_TEST(FenwickTree, Default) { test_FenwickTree(); }

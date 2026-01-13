@@ -2,7 +2,6 @@
 
 #include "Set.hpp"
 #include "test.h"
-#include "testcase.h"
 using mystd::set::Set;
 using std::set;
 
@@ -62,3 +61,6 @@ void test_Set() {
     }
   }
 }
+
+// register tests
+MAKE_TEST(Set, Default) { test_Set(); }

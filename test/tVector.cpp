@@ -4,7 +4,6 @@
 
 #include "Vector.hpp"
 #include "test.h"
-#include "testcase.h"
 
 using namespace mystd::vector;
 
@@ -142,3 +141,6 @@ void test_Vector() {
   rand_test_int();
   test_emplace_and_nontivial();
 }
+
+// register tests
+MAKE_TEST(Vector, Default) { test_Vector(); }

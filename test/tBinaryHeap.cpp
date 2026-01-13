@@ -3,7 +3,6 @@
 #include "BinaryHeap.hpp"
 #include "Compare.hpp"
 #include "test.h"
-#include "testcase.h"
 
 using namespace mystd::binary_heap;
 using namespace mystd::compare;
@@ -75,9 +74,8 @@ static void test_exceptions() {
   EXPECT_THROW(h.pop(), std::out_of_range);
 }
 
-void test_BinaryHeap() {
-  test_basic_int_heap();
-  test_person_heap();
-  test_initializer_list();
-  test_exceptions();
-}
+// register tests
+MAKE_TEST(BinaryHeap, BasicInt) { test_basic_int_heap(); }
+MAKE_TEST(BinaryHeap, Person) { test_person_heap(); }
+MAKE_TEST(BinaryHeap, InitList) { test_initializer_list(); }
+MAKE_TEST(BinaryHeap, Exceptions) { test_exceptions(); }

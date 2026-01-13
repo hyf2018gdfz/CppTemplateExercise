@@ -2,7 +2,6 @@
 
 #include "SegmentTree.hpp"
 #include "test.h"
-#include "testcase.h"
 
 namespace TestSegmentTree {
 const int mod = 1e9 + 7;
@@ -85,3 +84,6 @@ void test_SegmentTree() {
     }
   }
 }
+
+// register tests
+MAKE_TEST(SegmentTree, Default) { test_SegmentTree(); }
