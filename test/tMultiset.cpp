@@ -1,13 +1,13 @@
 #include <set>
+#include <vector>
 
 #include "Compare.hpp"
 #include "Set.hpp"
 #include "test.h"
-#include "testcase.h"
 using mystd::set::Multiset;
 using std::multiset;
 
-static void test_construct() {
+static void multiset_construct_impl() {
   {
     Multiset<int> mst;
     CHECK_EQ(0, mst.size());
@@ -60,8 +60,7 @@ static void test_construct() {
   }
 }
 
-void test_Multiset() {
-  test_construct();
+static void multiset_fuzzy_impl() {
   RandomGenerator gen;
   const int query_times = 1000000;
   const int num_range = 100;
@@ -117,3 +116,75 @@ void test_Multiset() {
     }
   }
 }
+
+static void multiset_basic_impl() {
+  // insert and order
+  Multiset<int> a;
+  a.insert(1);
+  a.insert(2);
+  a.insert(2);
+  a.insert(3);
+  CHECK_EQ(4, a.size());
+  std::vector<int> vals;
+  for (auto it = a.begin(); it != a.end(); ++it) vals.push_back(*it);
+  CHECK_EQ(1, vals[0]);
+  CHECK_EQ(2, vals[1]);
+  CHECK_EQ(2, vals[2]);
+  CHECK_EQ(3, vals[3]);
+
+  // erase by iterator
+  auto it2 = a.find(2);
+  CHECK_EQ(2, *it2);
+  auto next_it = a.erase(it2);
+  CHECK_EQ(3, *next_it);
+  CHECK_EQ(3, a.size());
+
+  // erase by value (remove remaining '2')
+  a.insert(2);
+  auto removed = a.erase(2);
+  CHECK_EQ(2, removed);
+  CHECK_EQ(2, a.size());
+
+  // bounds and equalRange
+  a.insert(2);
+  a.insert(2);
+  auto lb = a.lowerBound(2);
+  auto ub = a.upperBound(2);
+  CHECK_EQ(2, *lb);
+  // distance between lb and ub should be number of 2s
+  int count2 = 0;
+  for (auto it = lb; it != ub; ++it) ++count2;
+  CHECK_EQ(2, count2);
+
+  auto eq = a.equalRange(2);
+  CHECK_EQ(*eq.first, 2);
+
+  // find non-existing
+  auto f = a.find(999);
+  CHECK_EQ(a.end(), f);
+
+  // clear
+  a.clear();
+  CHECK_EQ(true, a.empty());
+  CHECK_EQ(a.begin(), a.end());
+
+  // swap
+  Multiset<int> b;
+  b.insert(10);
+  b.insert(20);
+  a.insert(1);
+  a.insert(2);
+  a.swap(b);
+  CHECK_EQ(2, b.size());
+  CHECK_EQ(2, a.size());
+  // after swap, a should have elements 10,20
+  vals.clear();
+  for (auto it = a.begin(); it != a.end(); ++it) vals.push_back(*it);
+  CHECK_EQ(10, vals[0]);
+  CHECK_EQ(20, vals[1]);
+}
+
+// register tests
+MAKE_TEST(Multiset, Construct) { multiset_construct_impl(); }
+MAKE_TEST(Multiset, Fuzzy) { multiset_fuzzy_impl(); }
+MAKE_TEST(Multiset, Basics) { multiset_basic_impl(); }

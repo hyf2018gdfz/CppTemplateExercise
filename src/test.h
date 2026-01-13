@@ -6,6 +6,7 @@
 #include <iostream>
 #include <random>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -139,5 +140,137 @@ public:
   auto engine() -> std::mt19937 & { return rng_; }
 };
 // NOLINTEND
+
+#include <map>
+#include <vector>
+
+using TestFunc = void (*)();
+
+struct Testcase {
+  std::string suite_name_;
+  std::string case_name_;
+  TestFunc func_;
+};
+
+class TestRegistry {
+  const std::string RESET = "\033[0m";
+  const std::string RED = "\033[31m";
+  const std::string GREEN = "\033[32m";
+  const std::string CYAN = "\033[36m";
+
+public:
+  static auto instance() -> TestRegistry & {
+    static TestRegistry reg;
+    return reg;
+  }
+  // 注册函数
+  void addTest(const std::string &suite, const std::string &name,
+               TestFunc func) {
+    Testcase tmp{suite, name, func};
+    tests_[suite].push_back(tmp);
+  }
+  // main 直接调用的执行接口
+  auto runAll() -> int {
+    int global_failed = 0;
+    for (auto &suite : tests_) {
+      std::cout << CYAN << "==== Running suite " << suite.first
+                << " ====" << RESET << "\n";
+      auto total = static_cast<int>(suite.second.size());
+      auto passed = 0;
+      for (auto &testcase : suite.second) {
+        try {
+          testcase.func_();
+          passed++;
+        } catch (std::exception &e) {
+          std::cerr << RED << "[ERROR] " << RESET << testcase.case_name_
+                    << " failed: " << e.what() << "\n";
+        }
+      }
+      int failed = total - passed;
+      global_failed += failed;
+      if (passed == total) {
+        std::cout << GREEN << "All " << total << " tests passed!" << RESET
+                  << "\n";
+      } else {
+        std::cout << GREEN << "Passed: " << passed << RESET << "\n";
+        std::cout << RED << "Failed: " << failed << RESET << "\n";
+      }
+    }
+    return global_failed;
+  }
+
+  // 只运行指定套件
+  auto runSuites(const std::vector<std::string> &suites) -> int {
+    int global_failed = 0;
+    for (const auto &name : suites) {
+      auto iter = tests_.find(name);
+      if (iter == tests_.end()) {
+        std::cerr << RED << "[WARN] " << RESET << "Unknown suite: " << name
+                  << "\n";
+        continue;
+      }
+
+      std::cout << CYAN << "==== Running " << iter->first << " ====" << RESET
+                << "\n";
+      auto total = static_cast<int>(iter->second.size());
+      auto passed = 0;
+      for (auto &testcase : iter->second) {
+        try {
+          testcase.func_();
+          passed++;
+        } catch (std::exception &e) {
+          std::cerr << RED << "[ERROR] " << RESET << testcase.case_name_
+                    << " failed: " << e.what() << "\n";
+        }
+      }
+      int failed = total - passed;
+      global_failed += failed;
+      if (passed == total) {
+        std::cout << GREEN << "All " << total << " tests passed!" << RESET
+                  << "\n";
+      } else {
+        std::cout << GREEN << "Passed: " << passed << RESET << "\n";
+        std::cout << RED << "Failed: " << failed << RESET << "\n";
+      }
+    }
+    return global_failed;
+  }
+
+  // 列出所有套件名
+  [[nodiscard]] auto getSuites() const -> std::vector<std::string> {
+    std::vector<std::string> out;
+    out.reserve(tests_.size());
+    for (const auto &suite : tests_) {
+      out.push_back(suite.first);
+    }
+    return out;
+  }
+
+  // 列出指定套件下的用例名
+  [[nodiscard]] auto getCases(const std::string &suite) const
+      -> std::vector<std::string> {
+    std::vector<std::string> out;
+    auto iter = tests_.find(suite);
+    if (iter == tests_.end()) {
+      return out;
+    }
+    for (const auto &testcase : iter->second) {
+      out.push_back(testcase.case_name_);
+    }
+    return out;
+  }
+
+private:
+  std::map<std::string, std::vector<Testcase>> tests_;
+};
+
+#define MAKE_TEST(suite_name, case_name)                                \
+  void suite_name##_##case_name##_impl();                               \
+  static int suite_name##_##case_name##_reg = []() {                    \
+    TestRegistry::instance().addTest(#suite_name, #case_name,           \
+                                     &suite_name##_##case_name##_impl); \
+    return 0;                                                           \
+  }();                                                                  \
+  void suite_name##_##case_name##_impl()
 
 #endif  // TEST_H

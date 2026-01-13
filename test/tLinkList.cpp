@@ -5,7 +5,6 @@
 
 #include "LinkList.hpp"
 #include "test.h"
-#include "testcase.h"
 
 using namespace mystd::linklist;
 
@@ -99,3 +98,6 @@ void test_LinkList() {
   }
   full_compare(lst, ref);
 }
+
+// register tests
+MAKE_TEST(LinkList, Default) { test_LinkList(); }

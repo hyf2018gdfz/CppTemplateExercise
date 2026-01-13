@@ -3,7 +3,6 @@
 
 #include "Stack.hpp"
 #include "test.h"
-#include "testcase.h"
 
 using mystd::stack::Stack;
 using std::stack;
@@ -53,3 +52,6 @@ void test_Stack() {
     }
   }
 }
+
+// register tests
+MAKE_TEST(Stack, Default) { test_Stack(); }

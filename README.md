@@ -19,10 +19,10 @@ $ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug ./
 $ cmake --build ./build
 ```
 
-它会在 `build` 文件夹内生成集成测试入口 `mytest`，运行该可执行文件即可看到所有测试的结果，添加 `--module` 参数可以指定要运行的测试。如：
+它会在 `build` 文件夹内生成集成测试入口 `mytest`，运行该可执行文件即可看到所有测试的结果，添加 `--suite` 参数可以指定要运行的测试。如：
 
 ```bash
-$ ./build/mytest --module=SegmentTree,LinkList
+$ ./build/mytest --suite=SegmentTree,LinkList
 ```
 
-所有支持的测试可以在 `test/main.cpp` 中看到。
+所有支持的测试可以使用参数 `--list-suites` 看到。
