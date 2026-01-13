@@ -42,14 +42,24 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Install clang-format
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-format
+
     - name: Check code format
       run: |
-        sudo apt-get install -y clang-format
         FILES=$(find . -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) ! -path './build/*')
         if [ -z "$FILES" ]; then
           echo "No source files found to check."
-        else
-          echo "Checking format for the following files:"
-          echo "$FILES"
-          clang-format --dry-run --Werror $FILES
+          exit 0
+        fi
+        echo "Formatting files with clang-format..."
+        clang-format -i $FILES
+        echo "Checking for uncommitted formatting changes..."
+        git --no-pager diff --name-only
+        if ! git diff --exit-code --name-only >/dev/null; then
+          echo "Files are not formatted. Please run clang-format locally and push the changes."
+          git --no-pager diff
+          exit 1
         fi
