@@ -7,7 +7,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -35,6 +35,13 @@ jobs:
           echo "No test binary found, skipping tests."
         fi
         
+  format-check:
+    name: Code Format Check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
     - name: Check code format
       run: |
         sudo apt-get install -y clang-format
