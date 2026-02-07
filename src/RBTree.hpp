@@ -223,24 +223,14 @@ public:
     if (iter == end()) {
       return end();
     }
-    const Key k = KeyOfValue()(*iter);
     NodePtr node = static_cast<NodePtr>(iter.node_);
+    Iterator result = iter;
     bool has_two_children = (node->left_ != nullptr && node->right_ != nullptr);
-    Iterator precomputed_next = iter;
     if (!has_two_children) {
-      ++precomputed_next;
+      ++result;
     }
     eraseImpl(node);
-    if (has_two_children) {
-      const Key new_key = KeyOfValue()(node->val_);
-      if (!comp_(k, new_key) && !comp_(new_key, k)) {
-        return Iterator(static_cast<BasePtr>(node));
-      } else {
-        return Iterator(RBNodeBase::suffix(static_cast<BasePtr>(node)));
-      }
-    } else {
-      return precomputed_next;
-    }
+    return result;
   }
   auto eraseUnique(const Key& key) -> size_t {
     auto iter = find(key);
