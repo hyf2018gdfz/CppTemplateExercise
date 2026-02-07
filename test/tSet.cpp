@@ -5,7 +5,136 @@
 using mystd::set::Set;
 using std::set;
 
-void test_Set() {
+static void set_construct_impl() {
+  // 默认构造
+  {
+    Set<int> st;
+    CHECK_EQ(0, st.size());
+    CHECK_EQ(true, st.empty());
+    CHECK_EQ(st.begin(), st.end());
+  }
+
+  // 自定义比较器构造
+  {
+    Set<int, mystd::compare::Greater<int>> st;
+    st.insert(10);
+    st.insert(20);
+    st.insert(5);
+    // Greater: 20 -> 10 -> 5
+    auto it = st.begin();
+    CHECK_EQ(20, *it);
+    CHECK_EQ(10, *(++it));
+  }
+
+  // 拷贝构造
+  {
+    Set<int> st1;
+    st1.insert(1);
+    st1.insert(2);
+    Set<int> st2(st1);
+    
+    CHECK_EQ(2, st2.size());
+    st1.insert(3);
+    CHECK_EQ(3, st1.size());
+    CHECK_EQ(2, st2.size());
+  }
+
+  // 移动构造
+  {
+    Set<int> st1;
+    st1.insert(1);
+    st1.insert(2);
+    Set<int> st2(std::move(st1));
+    
+    CHECK_EQ(2, st2.size());
+    CHECK_EQ(true, st1.empty());
+  }
+
+  // 拷贝赋值与自赋值
+  {
+    Set<int> st1, st2;
+    st1.insert(10);
+    st2 = st1;
+    CHECK_EQ(1, st2.size());
+    
+    st1.insert(20);
+    st2 = st2;
+    CHECK_EQ(1, st2.size());
+    CHECK_EQ(2, st1.size());
+  }
+
+  // 移动赋值
+  {
+    Set<int> st1, st2;
+    st1.insert(10);
+    st2.insert(5);
+    st2 = std::move(st1);
+    
+    CHECK_EQ(1, st2.size());
+    CHECK_EQ(10, *st2.begin());
+    CHECK_EQ(true, st1.empty());
+  }
+}
+
+static void set_basic_impl() {
+  Set<int> st;
+
+  // 测试 Insert 和 唯一性
+  // 第一次插入
+  auto ret1 = st.insert(10);
+  CHECK_EQ(true, ret1.second);
+  CHECK_EQ(10, *ret1.first);
+  CHECK_EQ(1, st.size());
+
+  // 插入重复元素
+  auto ret2 = st.insert(10);
+  CHECK_EQ(false, ret2.second);
+  CHECK_EQ(10, *ret2.first);
+  CHECK_EQ(1, st.size());
+
+  // 插入新元素
+  st.insert(20);
+  st.insert(30);
+  CHECK_EQ(3, st.size());
+
+  // 验证有序性
+  std::vector<int> vec;
+  for(auto x : st) vec.push_back(x);
+  CHECK_EQ(10, vec[0]);
+  CHECK_EQ(20, vec[1]);
+  CHECK_EQ(30, vec[2]);
+
+  // 测试 Erase (迭代器)
+  auto it = st.find(20);
+  auto next = st.erase(it);
+  CHECK_EQ(30, *next); 
+  CHECK_EQ(2, st.size());
+
+  // 测试 Erase (值)
+  size_t cnt = st.erase(10);
+  CHECK_EQ(1, cnt);
+  CHECK_EQ(1, st.size());
+
+  // 测试删除不存在的值
+  cnt = st.erase(999);
+  CHECK_EQ(0, cnt);
+  CHECK_EQ(1, st.size());
+
+  // 测试 Clear
+  st.clear();
+  CHECK_EQ(true, st.empty());
+
+  // 测试 Swap
+  Set<int> a, b;
+  a.insert(1);
+  b.insert(2); b.insert(3);
+  a.swap(b);
+  CHECK_EQ(2, a.size());
+  CHECK_EQ(1, b.size());
+  CHECK_EQ(2, *a.begin());
+}
+
+static void set_fuzzy_impl() {
   RandomGenerator gen;
   const int query_times = 1000000;
   const int num_range = 1000;
@@ -63,4 +192,6 @@ void test_Set() {
 }
 
 // register tests
-MAKE_TEST(Set, Default) { test_Set(); }
+MAKE_TEST(Set, Construct) { set_construct_impl(); }
+MAKE_TEST(Set, Basic) { set_basic_impl(); }
+MAKE_TEST(Set, Fuzzy) { set_fuzzy_impl(); }
