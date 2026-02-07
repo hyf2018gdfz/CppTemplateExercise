@@ -210,6 +210,72 @@ static void set_move_only_impl() {
   CHECK_EQ(15, st2.begin()->val); // st2 got 15
 }
 
+static void set_const_impl() {
+  Set<int> st;
+  st.insert(10);
+  st.insert(20);
+  st.insert(30);
+
+  // 创建 const 引用
+  const Set<int>& cst = st;
+
+  // 1. empty() const, size() const
+  CHECK_EQ(false, cst.empty());
+  CHECK_EQ(3, cst.size());
+
+  // 2. begin() const -> ConstIterator
+  auto cit = cst.begin(); 
+  CHECK_EQ(10, *cit);
+  
+  // 3. find() const
+  auto found = cst.find(20);
+  CHECK_EQ(false, found == cst.end());
+  CHECK_EQ(20, *found);
+
+  auto not_found = cst.find(99);
+  CHECK_EQ(true, not_found == cst.end());
+
+  // 4. lowerBound() const, upperBound() const
+  auto lb = cst.lowerBound(20);
+  CHECK_EQ(20, *lb);
+  
+  auto ub = cst.upperBound(20);
+  CHECK_EQ(30, *ub);
+
+  // 5. equalRange() const
+  auto range = cst.equalRange(20);
+  CHECK_EQ(20, *range.first);
+  CHECK_EQ(30, *range.second);
+}
+
+static void set_string_impl() {
+  Set<std::string> st;
+
+  // 1. Insert & Order
+  st.insert("banana");
+  st.insert("apple");
+  st.insert("cherry");
+
+  CHECK_EQ(3, st.size());
+  
+  auto it = st.begin();
+  CHECK_EQ("apple", *it);
+  CHECK_EQ("banana", *(++it));
+  CHECK_EQ("cherry", *(++it));
+
+  // 2. Erase by value
+  st.erase("banana");
+  CHECK_EQ(2, st.size());
+  CHECK_EQ("cherry", *st.begin().operator++()); // apple -> cherry
+
+  // 3. Move Insert
+  std::string s = "date";
+  st.insert(std::move(s));
+  CHECK_EQ(3, st.size());
+  CHECK_EQ(true, st.find("date") != st.end());
+  // s is now in valid but unspecified state, usually empty
+}
+
 static void set_fuzzy_impl() {
   RandomGenerator gen;
   const int query_times = 1000000;
@@ -272,4 +338,6 @@ MAKE_TEST(Set, Construct) { set_construct_impl(); }
 MAKE_TEST(Set, Basic) { set_basic_impl(); }
 MAKE_TEST(Set, Iterator) { set_iterator_impl(); }
 MAKE_TEST(Set, MoveOnly) { set_move_only_impl(); }
+MAKE_TEST(Set, ConstCorrectness) { set_const_impl(); }
+MAKE_TEST(Set, StringType) { set_string_impl(); }
 MAKE_TEST(Set, Fuzzy) { set_fuzzy_impl(); }
