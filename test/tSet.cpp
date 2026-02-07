@@ -134,6 +134,82 @@ static void set_basic_impl() {
   CHECK_EQ(2, *a.begin());
 }
 
+static void set_iterator_impl() {
+  Set<int> st;
+  st.insert(10);
+  st.insert(20);
+  st.insert(30);
+
+  // 1. operator++
+  auto it = st.begin();
+  CHECK_EQ(10, *it);
+  CHECK_EQ(20, *(++it));
+  CHECK_EQ(30, *(++it));
+  CHECK_EQ(st.end(), ++it);
+
+  // 2. operator-- (from end)
+  auto end_it = st.end();
+  CHECK_EQ(30, *(--end_it));
+  CHECK_EQ(20, *(--end_it));
+  CHECK_EQ(10, *(--end_it));
+  CHECK_EQ(st.begin(), end_it);
+  
+  // 3. const_iterator
+  const Set<int>& cst = st;
+  auto cit = cst.end();
+  CHECK_EQ(30, *(--cit));
+}
+
+namespace {
+struct MoveOnly {
+  int val;
+  explicit MoveOnly(int v) : val(v) {}
+  MoveOnly(MoveOnly&&) = default;
+  MoveOnly& operator=(MoveOnly&&) = default;
+  MoveOnly(const MoveOnly&) = delete;
+  MoveOnly& operator=(const MoveOnly&) = delete;
+
+  bool operator<(const MoveOnly& other) const { return val < other.val; }
+};
+}
+
+static void set_move_only_impl() {
+  Set<MoveOnly> st;
+
+  // 1. insert(T&&)
+  auto ret = st.insert(MoveOnly(10));
+  CHECK_EQ(true, ret.second);
+  CHECK_EQ(10, ret.first->val);
+
+  // 2. Duplicate insert
+  ret = st.insert(MoveOnly(10));
+  CHECK_EQ(false, ret.second);
+  CHECK_EQ(10, ret.first->val);
+  CHECK_EQ(1, st.size());
+
+  st.insert(MoveOnly(5));
+  st.insert(MoveOnly(15)); // {5, 10, 15}
+
+  // 3. erase(iterator)
+  auto it = st.find(MoveOnly(10)); // uses temporary for lookup
+  auto next = st.erase(it);
+  CHECK_EQ(15, next->val);
+  CHECK_EQ(2, st.size());
+
+  // 4. erase(const Key&) - by value
+  size_t cnt = st.erase(MoveOnly(5));
+  CHECK_EQ(1, cnt);
+  CHECK_EQ(1, st.size());
+  CHECK_EQ(15, st.begin()->val);
+
+  // 5. Swap
+  Set<MoveOnly> st2;
+  st2.insert(MoveOnly(99));
+  st.swap(st2);
+  CHECK_EQ(99, st.begin()->val); // st got 99
+  CHECK_EQ(15, st2.begin()->val); // st2 got 15
+}
+
 static void set_fuzzy_impl() {
   RandomGenerator gen;
   const int query_times = 1000000;
@@ -194,4 +270,6 @@ static void set_fuzzy_impl() {
 // register tests
 MAKE_TEST(Set, Construct) { set_construct_impl(); }
 MAKE_TEST(Set, Basic) { set_basic_impl(); }
+MAKE_TEST(Set, Iterator) { set_iterator_impl(); }
+MAKE_TEST(Set, MoveOnly) { set_move_only_impl(); }
 MAKE_TEST(Set, Fuzzy) { set_fuzzy_impl(); }
