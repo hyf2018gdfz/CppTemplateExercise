@@ -223,7 +223,6 @@ public:
     if (iter == end()) {
       return end();
     }
-    const Key k = KeyOfValue()(*iter);
     NodePtr node = static_cast<NodePtr>(iter.node_);
     bool has_two_children = (node->left_ != nullptr && node->right_ != nullptr);
     Iterator precomputed_next = iter;
