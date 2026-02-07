@@ -60,6 +60,104 @@ static void multiset_construct_impl() {
   }
 }
 
+// 测试迭代器的双向移动
+static void multiset_iterator_impl() {
+  Multiset<int> mst;
+  mst.insert(1);
+  mst.insert(2);
+  mst.insert(3);
+
+  auto it = mst.end();
+  --it;
+  CHECK_EQ(3, *it);
+  --it;
+  CHECK_EQ(2, *it);
+  --it;
+  CHECK_EQ(1, *it);
+  CHECK_EQ(it, mst.begin());
+
+  // 验证 const 迭代器
+  const Multiset<int>& cmst = mst;
+  auto cit = cmst.end();
+  --cit;
+  CHECK_EQ(3, *cit);
+}
+
+// 测试非基本类型 (std::string)
+static void multiset_string_impl() {
+  Multiset<std::string> mst;
+  mst.insert("apple");
+  mst.insert("banana");
+  mst.insert("apple"); // 重复插入
+
+  CHECK_EQ(3, mst.size());
+  CHECK_EQ("apple", *mst.begin());
+  
+  // 按值删除，应该删除两个 "apple"
+  CHECK_EQ(2, mst.erase("apple"));
+  CHECK_EQ(1, mst.size());
+  CHECK_EQ("banana", *mst.begin());
+}
+
+// 测试大量重复元素及 equalRange
+static void multiset_duplicates_impl() {
+  Multiset<int> mst;
+  const int count = 10;
+  for (int i = 0; i < count; ++i) {
+    mst.insert(100);
+  }
+  mst.insert(50);
+  mst.insert(150);
+
+  CHECK_EQ(count + 2, mst.size());
+
+  // 测试 equalRange
+  auto range = mst.equalRange(100);
+  int range_count = 0;
+  for (auto it = range.first; it != range.second; ++it) {
+    CHECK_EQ(100, *it);
+    range_count++;
+  }
+  CHECK_EQ(count, range_count);
+
+  // 验证边界
+  CHECK_EQ(50, *(--range.first));
+  CHECK_EQ(150, *(range.second));
+
+  // 测试删除所有重复项
+  auto erased_count = mst.erase(100);
+  CHECK_EQ(count, erased_count);
+  CHECK_EQ(2, mst.size());
+  CHECK_EQ(mst.end(), mst.find(100));
+}
+
+// 测试边界删除和返回值
+static void multiset_erase_edge_impl() {
+  Multiset<int> mst;
+  mst.insert(10);
+  mst.insert(20);
+  mst.insert(30);
+
+  // 删除中间元素，检查返回值
+  auto it = mst.find(20);
+  auto next = mst.erase(it);
+  CHECK_EQ(30, *next);
+  CHECK_EQ(2, mst.size());
+
+  // 删除最后一个元素，返回值应为 end()
+  it = mst.find(30);
+  next = mst.erase(it);
+  CHECK_EQ(mst.end(), next);
+  CHECK_EQ(1, mst.size());
+
+  // 删除第一个元素 (也就是仅剩的 10)
+  it = mst.begin();
+  CHECK_EQ(10, *it);
+  next = mst.erase(it);
+  CHECK_EQ(mst.end(), next);
+  CHECK_EQ(true, mst.empty());
+}
+
 static void multiset_fuzzy_impl() {
   RandomGenerator gen;
   const int query_times = 1000000;
@@ -186,5 +284,9 @@ static void multiset_basic_impl() {
 
 // register tests
 MAKE_TEST(Multiset, Construct) { multiset_construct_impl(); }
-MAKE_TEST(Multiset, Fuzzy) { multiset_fuzzy_impl(); }
+MAKE_TEST(Multiset, Iterator) { multiset_iterator_impl(); }
+MAKE_TEST(Multiset, StringType) { multiset_string_impl(); }
+MAKE_TEST(Multiset, Duplicates) { multiset_duplicates_impl(); }
+MAKE_TEST(Multiset, EraseEdge) { multiset_erase_edge_impl(); }
 MAKE_TEST(Multiset, Basics) { multiset_basic_impl(); }
+MAKE_TEST(Multiset, Fuzzy) { multiset_fuzzy_impl(); }
