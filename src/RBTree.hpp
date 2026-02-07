@@ -612,7 +612,7 @@ public:
     ConstBasePtr node = root();
     ConstBasePtr ans = header_;
     while (node != nullptr) {
-      Key knode = KeyOfValue()(static_cast<ConstNodePtr>(node)->val_);
+      const Key& knode = KeyOfValue()(static_cast<ConstNodePtr>(node)->val_);
       if (comp_(key, knode)) {
         node = node->left_;
       } else {
@@ -635,7 +635,7 @@ public:
     ConstBasePtr node = root();
     ConstBasePtr ans = header_;
     while (node != nullptr) {
-      Key knode = KeyOfValue()(static_cast<ConstNodePtr>(node)->val_);
+      const Key& knode = KeyOfValue()(static_cast<ConstNodePtr>(node)->val_);
       if (!comp_(knode, key)) {
         ans = node;
         node = node->left_;
@@ -653,7 +653,7 @@ public:
     ConstBasePtr node = root();
     ConstBasePtr ans = header_;
     while (node != nullptr) {
-      Key knode = KeyOfValue()(static_cast<ConstNodePtr>(node)->val_);
+      const Key& knode = KeyOfValue()(static_cast<ConstNodePtr>(node)->val_);
       if (comp_(key, knode)) {
         ans = node;
         node = node->left_;
