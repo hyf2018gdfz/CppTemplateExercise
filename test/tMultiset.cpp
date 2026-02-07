@@ -233,6 +233,53 @@ static void multiset_self_assignment_impl() {
   CHECK_EQ(2, mst.size()); 
 }
 
+static void multiset_const_impl() {
+  Multiset<int> mst;
+  mst.insert(10);
+  mst.insert(20);
+  mst.insert(20);
+  mst.insert(30);
+
+  // 创建一个 const 引用
+  // 后续所有操作都会强制调用 const 版本的成员函数
+  const Multiset<int>& cmst = mst;
+
+  // 1. 测试基础属性 (调用 size() const, empty() const)
+  CHECK_EQ(4, cmst.size());
+  CHECK_EQ(false, cmst.empty());
+
+  // 2. 测试迭代器 (调用 begin() const)
+  // 如果实现正确，it 的类型应该是 Multiset<int>::ConstIterator
+  auto it = cmst.begin();
+  CHECK_EQ(10, *it);
+  
+  // 验证迭代器移动
+  ++it;
+  CHECK_EQ(20, *it);
+
+  // 3. 测试查找
+  auto fit = cmst.find(30);
+  CHECK_EQ(false, fit == cmst.end());
+  CHECK_EQ(30, *fit);
+
+  auto fit_fail = cmst.find(999);
+  CHECK_EQ(true, fit_fail == cmst.end());
+
+  // 4. 测试范围查找
+  auto range = cmst.equalRange(20);
+  // range.first 应该是第一个 20
+  CHECK_EQ(20, *range.first);
+  // range.second 应该是 30
+  CHECK_EQ(30, *range.second);
+  
+  // 验证距离为 2
+  int count = 0;
+  for (auto i = range.first; i != range.second; ++i) {
+      count++;
+  }
+  CHECK_EQ(2, count);
+}
+
 static void multiset_basic_impl() {
   // insert and order
   Multiset<int> a;
@@ -366,5 +413,6 @@ MAKE_TEST(Multiset, EraseEdge) { multiset_erase_edge_impl(); }
 MAKE_TEST(Multiset, MoveOnly) { multiset_move_only_impl(); }
 MAKE_TEST(Multiset, CustomCompare) { multiset_custom_compare_impl(); }
 MAKE_TEST(Multiset, SelfAssign) { multiset_self_assignment_impl(); }
+MAKE_TEST(Multiset, ConstSupport) { multiset_const_impl(); }
 MAKE_TEST(Multiset, Basics) { multiset_basic_impl(); }
 MAKE_TEST(Multiset, Fuzzy) { multiset_fuzzy_impl(); }
