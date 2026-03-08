@@ -250,6 +250,216 @@ public:
   }
   auto operator->() const noexcept -> Pointer { return get(); }
 };
-};  // namespace mystd::memory
 
+template <typename T, typename Deleter>
+class UniquePtr<T[], Deleter> {
+private:
+  template <typename D, typename = void>
+  struct PointerType {
+    using Type = T*;
+  };
+  template <typename D>
+  struct PointerType<D, std::void_t<typename D::pointer>> {
+    using Type = typename D::pointer;
+  };
+
+public:
+  using Pointer = typename PointerType<std::remove_reference_t<Deleter>>::Type;
+  using ElementType = T;
+  using DeleterType = Deleter;
+
+private:
+  mystd::memory::internal::CompressedPair<DeleterType, Pointer> cp_;
+
+  template <typename U, typename = void>
+  struct IsSafeArrayConversion : std::false_type {};
+
+  template <typename V>
+  struct IsSafeArrayConversion<V*, std::void_t<V (*)[]>>
+      : std::is_convertible<V (*)[], ElementType (*)[]> {};
+
+  // 检查reset的限制条件
+  template <typename U>
+  static constexpr bool CHECK_RESET_V =
+      std::is_same_v<U, Pointer> || (std::is_same_v<Pointer, ElementType*> &&
+                                     IsSafeArrayConversion<U>::value);
+
+  // 检查constructor 2-4的限制条件
+  template <typename U>
+  static constexpr bool CHECK_CONSTRUCTOR_V =
+      std::is_same_v<U, std::nullptr_t> || CHECK_RESET_V<U>;
+
+  // 检查operator =的限制条件
+  template <typename T1, typename D1>
+  static constexpr bool CHECK_OPERATOR_EQUAL_V =
+      std::is_array_v<T1> && std::is_same_v<Pointer, ElementType*> &&
+      std::is_same_v<typename UniquePtr<T1, D1>::Pointer,
+                     typename UniquePtr<T1, D1>::ElementType*> &&
+      std::is_convertible_v<typename UniquePtr<T1, D1>::ElementType (*)[],
+                            ElementType (*)[]>;
+
+public:
+  // constructor 1
+  template <
+      typename U = Deleter,
+      std::enable_if_t<
+          std::is_default_constructible_v<U> && !std::is_pointer_v<U>, int> = 0>
+  constexpr UniquePtr() noexcept(std::is_nothrow_default_constructible_v<U>)
+      : cp_(Deleter(), nullptr) {}
+
+  template <
+      typename U = Deleter,
+      std::enable_if_t<
+          std::is_default_constructible_v<U> && !std::is_pointer_v<U>, int> = 0>
+  constexpr UniquePtr(std::nullptr_t nptr) noexcept(
+      std::is_nothrow_default_constructible_v<U>)
+      : cp_(Deleter(), nullptr) {}
+
+  // constructor 2
+  template <typename U,
+            std::enable_if_t<std::is_default_constructible_v<Deleter> &&
+                                 !std::is_pointer_v<Deleter> &&
+                                 CHECK_CONSTRUCTOR_V<U>,
+                             int> = 0>
+  explicit UniquePtr(U ptr) noexcept(
+      std::is_nothrow_default_constructible_v<Deleter>)
+      : cp_(Deleter(), ptr) {}
+
+  // constructor 3a
+  template <
+      typename U,
+      std::enable_if_t<!std::is_reference_v<Deleter> &&
+                           std::is_constructible_v<Deleter, const Deleter&> &&
+                           CHECK_CONSTRUCTOR_V<U>,
+                       int> = 0>
+  UniquePtr(U ptr, const Deleter& del) noexcept(
+      std::is_nothrow_copy_constructible_v<Deleter>)
+      : cp_(std::forward<decltype(del)>(del), ptr) {}
+
+  template <typename U,
+            std::enable_if_t<!std::is_reference_v<Deleter> &&
+                                 std::is_constructible_v<Deleter, Deleter&&> &&
+                                 CHECK_CONSTRUCTOR_V<U>,
+                             int> = 0>
+  UniquePtr(U ptr, Deleter&& del) noexcept(
+      std::is_nothrow_move_constructible_v<Deleter>)
+      : cp_(std::forward<decltype(del)>(del), ptr) {}
+
+  // constructor 3b and 3c
+  template <
+      typename U,
+      std::enable_if_t<std::is_lvalue_reference_v<Deleter> &&
+                           std::is_constructible_v<
+                               Deleter, std::remove_reference_t<Deleter>&> &&
+                           CHECK_CONSTRUCTOR_V<U>,
+                       int> = 0>
+  UniquePtr(U ptr, std::remove_reference_t<Deleter>& del) noexcept
+      : cp_(std::forward<decltype(del)>(del), ptr) {}
+
+  template <typename U,
+            std::enable_if_t<std::is_lvalue_reference_v<Deleter>, int> = 0>
+  UniquePtr(U ptr, std::remove_reference_t<Deleter>&& del) = delete;
+
+  // constructor 5
+  template <typename U = Deleter,
+            std::enable_if_t<std::is_move_constructible_v<U>, int> = 0>
+  UniquePtr(UniquePtr&& uptr) noexcept(
+      std::is_reference_v<Deleter> ||
+      std::is_nothrow_move_constructible_v<Deleter>)
+      : cp_(std::forward<Deleter>(uptr.getDeleter()), uptr.release()) {}
+
+  // constructor 6
+  template <typename T1, typename D1,
+            std::enable_if_t<CHECK_OPERATOR_EQUAL_V<T1, D1> &&
+                                 (std::is_reference_v<Deleter>
+                                      ? std::is_same_v<Deleter, D1>
+                                      : std::is_convertible_v<D1, Deleter>),
+                             int> = 0>
+  UniquePtr(UniquePtr<T1, D1>&& uptr) noexcept
+      : cp_(std::forward<D1>(uptr.getDeleter()), uptr.release()) {}
+
+  // constructor 7
+  UniquePtr(const UniquePtr&) = delete;
+
+  ~UniquePtr() {
+    if (get() != nullptr) {
+      getDeleter()(get());
+    }
+  }
+
+#ifdef MYSTD_HAS_CXX20
+  auto operator=(UniquePtr&& uptr) noexcept -> UniquePtr&
+    requires std::is_move_assignable_v<Deleter>
+  {
+    if (this != &uptr) {
+      reset(uptr.release());
+      cp_.getDeleter() = std::forward<Deleter>(uptr.getDeleter());
+    }
+    return *this;
+  }
+
+  template <typename T1, typename D1>
+  auto operator=(UniquePtr<T1, D1>&& uptr) noexcept
+      -> UniquePtr& requires(CHECK_OPERATOR_EQUAL_V<T1, D1>&&
+                                 std::is_assignable_v<Deleter&, D1&&>) {
+    reset(uptr.release());
+    cp_.getDeleter() = std::forward<D1>(uptr.getDeleter());
+    return *this;
+  }
+#else
+  auto operator=(UniquePtr&& uptr) noexcept -> UniquePtr& {
+    if (this != &uptr) {
+      static_assert(std::is_move_assignable_v<Deleter>);
+      reset(uptr.release());
+      cp_.getDeleter() = std::forward<Deleter>(uptr.getDeleter());
+    }
+    return *this;
+  }
+
+  template <typename T1, typename D1>
+  auto operator=(UniquePtr<T1, D1>&& uptr) noexcept -> UniquePtr& {
+    static_assert(CHECK_OPERATOR_EQUAL_V<T1, D1>);
+    static_assert(std::is_assignable_v<Deleter&, D1&&>);
+    reset(uptr.release());
+    cp_.getDeleter() = std::forward<D1>(uptr.getDeleter());
+    return *this;
+  }
+#endif
+
+  auto operator=(std::nullptr_t nptr) noexcept -> UniquePtr& {
+    reset();
+    return *this;
+  }
+  auto operator=(const UniquePtr&) = delete;
+
+  // Modifiers
+  auto release() noexcept -> Pointer {
+    Pointer old_ptr = cp_.getPointer();
+    cp_.getPointer() = nullptr;
+    return old_ptr;
+  }
+  template <typename U, std::enable_if_t<CHECK_RESET_V<U>, int> = 0>
+  void reset(U ptr) noexcept {
+    Pointer old_ptr = get();
+    cp_.getPointer() = ptr;
+    if (old_ptr != nullptr) {
+      getDeleter()(old_ptr);
+    }
+  }
+  void reset(std::nullptr_t nptr = nullptr) noexcept { reset(Pointer()); }
+  void swap(UniquePtr& other) noexcept { std::swap(cp_, other.cp_); }
+
+  // Observers
+  auto get() const noexcept -> Pointer { return cp_.getPointer(); }
+  auto getDeleter() noexcept -> Deleter& { return cp_.getDeleter(); }
+  auto getDeleter() const noexcept -> const Deleter& {
+    return cp_.getDeleter();
+  }
+  explicit operator bool() const noexcept { return get() != nullptr; }
+
+  // Dereference for array version, UniquePtr<T[]>
+  auto operator[](std::size_t ind) const -> T& { return get()[ind]; }
+};
+
+}  // namespace mystd::memory
 #endif
