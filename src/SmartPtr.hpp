@@ -5,18 +5,22 @@
 #include <type_traits>
 #include <utility>
 
+#include "common.h"
+
 namespace mystd::memory {
 template <typename T>
 struct DefaultDeleter {
   constexpr DefaultDeleter() noexcept = default;
-  template <typename U>
+  template <typename U,
+            std::enable_if_t<std::is_convertible_v<U*, T*>, int> = 0>
   DefaultDeleter(const DefaultDeleter<U>& d) noexcept {}
   void operator()(T* ptr) const noexcept { delete ptr; }
 };
 template <typename T>
 struct DefaultDeleter<T[]> {
   constexpr DefaultDeleter() noexcept = default;
-  template <typename U>
+  template <typename U,
+            std::enable_if_t<std::is_convertible_v<U*, T*>, int> = 0>
   DefaultDeleter(const DefaultDeleter<U[]>& d) noexcept {}
   void operator()(T* ptr) const noexcept { delete[] ptr; }
 };
@@ -139,7 +143,7 @@ public:
   UniquePtr(UniquePtr&& uptr) noexcept(
       std::is_reference_v<Deleter> ||
       std::is_nothrow_move_constructible_v<Deleter>)
-      : cp_(std::move(uptr.getDeleter()), uptr.release()) {}
+      : cp_(std::forward<Deleter>(uptr.getDeleter()), uptr.release()) {}
 
   // constructor 6
   template <
@@ -163,17 +167,88 @@ public:
     }
   }
 
+  // 在cpp17的标准下，我们比较难使用SFINAE在这里清除不符合条件的重载
+  // 因为编译器仍然可能自动生成非模板的赋值运算符
+  // 如果使用cpp20的标准，可以用requires来优美处理
+  // 因此在cpp17下，暂且用static_assert报错
+#ifdef MYSTD_HAS_CXX20
+  auto operator=(UniquePtr&& uptr) noexcept -> UniquePtr&
+    requires std::is_move_assignable_v<Deleter>
+  {
+    if (this != &uptr) {
+      reset(uptr.release());
+      cp_.getDeleter() = std::forward<Deleter>(uptr.getDeleter());
+    }
+    return *this;
+  }
+
+  template <typename T1, typename D1>
+  auto operator=(UniquePtr<T1, D1>&& uptr) noexcept
+      -> UniquePtr& requires(
+          !std::is_array_v<T1> &&
+          std::is_convertible_v<typename UniquePtr<T1, D1>::Pointer, Pointer> &&
+          std::is_assignable_v<Deleter&, D1&&>) {
+    reset(uptr.release());
+    cp_.getDeleter() = std::forward<D1>(uptr.getDeleter());
+    return *this;
+  }
+#else
+  auto operator=(UniquePtr&& uptr) noexcept -> UniquePtr& {
+    if (this != &uptr) {
+      static_assert(std::is_move_assignable_v<Deleter>);
+      reset(uptr.release());
+      cp_.getDeleter() = std::forward<Deleter>(uptr.getDeleter());
+    }
+    return *this;
+  }
+
+  template <typename T1, typename D1>
+  auto operator=(UniquePtr<T1, D1>&& uptr) noexcept -> UniquePtr& {
+    static_assert(!std::is_array_v<T1>);
+    static_assert(
+        std::is_convertible_v<typename UniquePtr<T1, D1>::Pointer, Pointer>);
+    static_assert(std::is_assignable_v<Deleter&, D1&&>);
+    reset(uptr.release());
+    cp_.getDeleter() = std::forward<D1>(uptr.getDeleter());
+    return *this;
+  }
+#endif
+
+  auto operator=(std::nullptr_t nptr) noexcept -> UniquePtr& {
+    reset();
+    return *this;
+  }
+  auto operator=(const UniquePtr&) = delete;
+
+  // Modifiers
   auto release() noexcept -> Pointer {
     Pointer old_ptr = cp_.getPointer();
     cp_.getPointer() = nullptr;
     return old_ptr;
   }
+  void reset(Pointer ptr = Pointer()) noexcept {
+    Pointer old_ptr = get();
+    cp_.getPointer() = ptr;
+    if (old_ptr != nullptr) {
+      getDeleter()(old_ptr);
+    }
+  }
+  void swap(UniquePtr& other) noexcept { std::swap(cp_, other.cp_); }
 
+  // Observers
   auto get() const noexcept -> Pointer { return cp_.getPointer(); }
   auto getDeleter() noexcept -> Deleter& { return cp_.getDeleter(); }
   auto getDeleter() const noexcept -> const Deleter& {
     return cp_.getDeleter();
   }
+  explicit operator bool() const noexcept { return get() != nullptr; }
+
+  // Dereference for single-object version, UniquePtr<T>
+  auto operator*() const noexcept(noexcept(*std::declval<Pointer>())) ->
+      typename std::add_lvalue_reference_t<T> {
+    return *get();
+  }
+  auto operator->() const noexcept -> Pointer { return get(); }
 };
 };  // namespace mystd::memory
 
