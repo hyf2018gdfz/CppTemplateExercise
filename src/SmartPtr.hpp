@@ -69,8 +69,8 @@ private:
     using Type = T*;
   };
   template <typename D>
-  struct PointerType<D, std::void_t<typename D::pointer>> {
-    using Type = typename D::pointer;
+  struct PointerType<D, std::void_t<typename D::Pointer>> {
+    using Type = typename D::Pointer;
   };
 
 public:
@@ -120,7 +120,7 @@ public:
       typename U = Deleter,
       std::enable_if_t<
           !std::is_reference_v<U> && std::is_constructible_v<U, U&&>, int> = 0>
-  UniquePtr(Pointer ptr, Deleter&& del) noexcept(
+  UniquePtr(Pointer ptr, std::remove_reference_t<Deleter>&& del) noexcept(
       std::is_nothrow_move_constructible_v<Deleter>)
       : cp_(std::forward<decltype(del)>(del), ptr) {}
 
@@ -259,8 +259,8 @@ private:
     using Type = T*;
   };
   template <typename D>
-  struct PointerType<D, std::void_t<typename D::pointer>> {
-    using Type = typename D::pointer;
+  struct PointerType<D, std::void_t<typename D::Pointer>> {
+    using Type = typename D::Pointer;
   };
 
 public:
@@ -341,7 +341,7 @@ public:
                                  std::is_constructible_v<Deleter, Deleter&&> &&
                                  CHECK_CONSTRUCTOR_V<U>,
                              int> = 0>
-  UniquePtr(U ptr, Deleter&& del) noexcept(
+  UniquePtr(U ptr, std::remove_reference_t<Deleter>&& del) noexcept(
       std::is_nothrow_move_constructible_v<Deleter>)
       : cp_(std::forward<decltype(del)>(del), ptr) {}
 
@@ -356,8 +356,9 @@ public:
   UniquePtr(U ptr, std::remove_reference_t<Deleter>& del) noexcept
       : cp_(std::forward<decltype(del)>(del), ptr) {}
 
-  template <typename U,
-            std::enable_if_t<std::is_lvalue_reference_v<Deleter>, int> = 0>
+  template <typename U, std::enable_if_t<std::is_lvalue_reference_v<Deleter> &&
+                                             CHECK_CONSTRUCTOR_V<U>,
+                                         int> = 0>
   UniquePtr(U ptr, std::remove_reference_t<Deleter>&& del) = delete;
 
   // constructor 5
