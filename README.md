@@ -6,13 +6,13 @@ This is a hands-on reimplementation of C++ standard library components to deeply
 
 ## 目标
 
-1. 复杂度正确，没有 bug；
+1. 时空复杂度正确，没有 bug；
 2. 尽可能通用；
 3. （有取舍地）复刻 cpp reference 上的要求。
 
 ## 编译与运行
 
-编译环境：C++17, CMake。
+编译环境：C++17, CMake。使用 C++20 或许可以获得更加精准的语义
 
 以下是一个编译示例：
 
@@ -27,5 +27,10 @@ $ cmake --build ./build
 $ ./build/mytest --suite=SegmentTree,LinkList
 ```
 
-
 所有支持的测试可以使用参数 `--list-suites` 看到。
+
+## Reference
+
+[C++ Reference](https://cppreference.cn/w/cpp)
+
+[MSVC's implementation of the C++ Standard Library](https://github.com/microsoft/STL)
